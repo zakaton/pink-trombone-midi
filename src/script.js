@@ -2,7 +2,7 @@
 
 const audioContext = Tone.context.rawContext._nativeAudioContext;
 audioContext.addEventListener("statechange", () => {
-  console.log(audioContext.state);
+  //console.log(audioContext.state);
   if (audioContext.state !== "running") {
     document.addEventListener("click", () => audioContext.resume(), {
       once: true,

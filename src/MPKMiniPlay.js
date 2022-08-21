@@ -29,7 +29,7 @@ class MPKMiniPlay extends EventDispatcher {
         Object.assign(message, { pressure });
         type += "-" + (padIndex + 1);
         this.dispatchEvent({
-          type: `pad-${padIndex+1}`,
+          type: `pad-${padIndex + 1}`,
           message: message,
         });
         break;
@@ -49,7 +49,7 @@ class MPKMiniPlay extends EventDispatcher {
         }
         break;
     }
-    console.log({ type, message });
+    //console.log({ type, message });
     this.dispatchEvent({
       type,
       message,

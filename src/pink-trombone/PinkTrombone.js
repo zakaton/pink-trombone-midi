@@ -10,16 +10,23 @@ import {} from "./audio/nodes/pinkTrombone/AudioNode.js";
 window.AudioContext = window.AudioContext || window.webkitAudioContext;
 
 class PinkTrombone {
+  get addModulesPromise() {
+    return this.constructor.addModulesPromise;
+  }
+  set addModulesPromise(promise) {
+    this.constructor.addModulesPromise = promise;
+  }
   addModules(audioContext) {
     if (audioContext.audioWorklet !== undefined) {
-      return audioContext.audioWorklet.addModule(
-        "./src/pink-trombone/audio/nodes/pinkTrombone/processors/WorkletProcessor.js"
-      );
-      //return audioContext.audioWorklet.addModule("./pink-trombone-worklet-processor.min.js");
+      if (!this.addModulesPromise) {
+        this.addModulesPromise = audioContext.audioWorklet.addModule(
+          "./src/pink-trombone/audio/nodes/pinkTrombone/processors/WorkletProcessor.js"
+        );
+        //return audioContext.audioWorklet.addModule("./pink-trombone-worklet-processor.min.js");
+      }
+      return this.addModulesPromise;
     } else {
-      return new Promise((resolve, reject) => {
-        resolve();
-      });
+      return Promise.resolve();
     }
   }
 
@@ -93,5 +100,4 @@ class PinkTrombone {
 window.AudioContext.prototype.createPinkTrombone = function () {
   return new PinkTrombone(this);
 };
-
 export default PinkTrombone;

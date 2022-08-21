@@ -1,5 +1,50 @@
 /* global MPKMiniPlay, pinkTromboneElements, envelopes, myConstrictions */
 
+const audioContext = Tone.context.rawContext._nativeAudioContext;
+audioContext.addEventListener("statechange", () => {
+  console.log(audioContext.state);
+  if (audioContext.state !== "running") {
+    document.addEventListener("click", () => audioContext.resume(), {
+      once: true,
+    });
+  }
+});
+audioContext.dispatchEvent(new Event("statechange"));
+
+let pinkTromboneElements = Array.from(
+  document.querySelectorAll("pink-trombone")
+);
+
+let envelopes = [];
+let myConstrictions = [];
+pinkTromboneElements.forEach((pinkTromboneElement, index) => {
+  pinkTromboneElement._index = index;
+  pinkTromboneElement.addEventListener("load", (event) => {
+    pinkTromboneElement.setAudioContext(audioContext).then((pinkTrombone) => {
+      if (index === 0) {
+        pinkTromboneElement.enableUI();
+        pinkTromboneElement.startUI();
+      }
+
+      const envelope = new Envelope(
+        pinkTromboneElement.pinkTrombone._pinkTromboneNode.intensity,
+        pinkTromboneElement.audioContext
+      );
+      pinkTromboneElement._envelope = envelope;
+      envelopes[index] = envelope;
+
+      pinkTromboneElement.connect(pinkTromboneElement.audioContext.destination);
+      pinkTromboneElement.start();
+      pinkTromboneElement.pinkTrombone._pinkTromboneNode.intensity.value = 0;
+      pinkTromboneElement.pinkTrombone._pinkTromboneNode.vibrato.wobble.value = 0;
+      const myConstriction = pinkTromboneElement.newConstriction(43, 1.8);
+      pinkTromboneElement.myConstriction = myConstriction;
+      myConstrictions[index] = myConstriction;
+      pinkTromboneElement.dispatchEvent(new Event("start"));
+    });
+  });
+});
+
 const interpolate = (from, to, interpolation) => {
   return from + interpolation * (to - from);
 };
@@ -23,10 +68,10 @@ const getAvailablePinkTrombone = () => {
       }
     }
   );
-    
-  availablePinkTrombone = availablePinkTrombone || earliestPinkTrombone
-  availablePinkTrombone._timeTaken = Date.now()
-  return availablePinkTrombone
+
+  availablePinkTrombone = availablePinkTrombone || earliestPinkTrombone;
+  availablePinkTrombone._timeTaken = Date.now();
+  return availablePinkTrombone;
 };
 const freePinkTrombone = (pinkTromboneElement) => {
   delete pinkTromboneElement._isNotAvailable;

@@ -1,0 +1,87 @@
+<html>
+  <head>
+    <title>Pink Trombone MIDI Editor</title>
+    <link rel="stylesheet" href="https://rsms.me/inter/inter.css" />
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <script src="https://unpkg.com/tone@14.7.77/build/Tone.js"></script>
+    <script src="Envelope.js"></script>
+    <script src="pink-trombone.min.js" type="module"></script>
+    <script src="EventDispatcher.js"></script>
+    <script src="MPKMiniPlay.js"></script>
+  </head>
+
+  <style>
+    #container {
+      width: 100%;
+      height: 100%;
+      display: grid;
+      grid-template-rows: repeat(2, 1fr);
+      grid-template-columns: repeat(2, 1fr);
+    }
+  </style>
+
+  <body>
+    <div id="container">
+      <pink-trombone></pink-trombone>
+      <pink-trombone></pink-trombone>
+      <pink-trombone></pink-trombone>
+      <pink-trombone></pink-trombone>
+    </div>
+
+    <script>
+      const audioContext = Tone.context.rawContext._nativeAudioContext;
+      audioContext.addEventListener("statechange", () => {
+        console.log(audioContext.state);
+        if (audioContext.state !== "running") {
+          document.addEventListener("click", () => audioContext.resume(), {
+            once: true,
+          });
+        }
+      });
+      audioContext.dispatchEvent(new Event("statechange"));
+
+      let pinkTromboneElements = Array.from(
+        document.querySelectorAll("pink-trombone")
+      );
+
+      let envelopes = [];
+      let myConstrictions = [];
+      pinkTromboneElements.forEach((pinkTromboneElement, index) => {
+        pinkTromboneElement._index = index;
+        pinkTromboneElement.addEventListener("load", (event) => {
+          pinkTromboneElement
+            .setAudioContext(audioContext)
+            .then((pinkTrombone) => {
+              if (index === 0) {
+                pinkTromboneElement.enableUI();
+                pinkTromboneElement.startUI();
+              }
+
+              const envelope = new Envelope(
+                pinkTromboneElement.pinkTrombone._pinkTromboneNode.intensity,
+                pinkTromboneElement.audioContext
+              );
+              pinkTromboneElement._envelope = envelope;
+              envelopes[index] = envelope;
+
+              pinkTromboneElement.connect(
+                pinkTromboneElement.audioContext.destination
+              );
+              pinkTromboneElement.start();
+              pinkTromboneElement.pinkTrombone._pinkTromboneNode.intensity.value = 0;
+              pinkTromboneElement.pinkTrombone._pinkTromboneNode.vibrato.wobble.value = 0;
+              const myConstriction = pinkTromboneElement.newConstriction(
+                43,
+                1.8
+              );
+              pinkTromboneElement.myConstriction = myConstriction;
+              myConstrictions[index] = myConstriction;
+              pinkTromboneElement.dispatchEvent(new Event("start"));
+            });
+        });
+      });
+    </script>
+    <script src="script.js"></script>
+  </body>
+</html>

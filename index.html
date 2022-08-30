@@ -176,6 +176,7 @@
       </div>
       <div id="pinkTrombones">
         <pink-trombone></pink-trombone>
+        <pink-trombone></pink-trombone>
       </div>
       <div id="presets">
         <div class="phonemes"></div>
@@ -741,6 +742,8 @@
             if (currentEnvelopePinkTromboneElement === pinkTromboneElement) {
               currentEnvelopePinkTromboneElement = null;
             }
+            setCurrentTime(0, pinkTromboneElement);
+            setPinkTromboneValue("intensity", null, 0, pinkTromboneElement);
           }, netOffset * 1000);
         }, timeUntilAttackEnds * 1000);
       };
@@ -907,6 +910,7 @@
         shouldResetOnPlay = true;
         timelineSlider.value = 0;
         currentTimeInput.value = 0;
+        setCurrentTime(0);
         return;
         setTimeout(() => {
           setCurrentTime(0);
@@ -1241,11 +1245,11 @@
         copiedButtons = multiButtons.slice();
         pasteKeyframeButton.disabled = !copiedButton;
       };
-      const pasteKeyframe = () => {
+      const pasteKeyframe = (replace = false) => {
         if (copiedButton) {
           setPinkTromboneWithKeyframe(copiedButton.keyframe);
           setTimeout(() => {
-            addKeyframe(currentTime, null, false);
+            addKeyframe(currentTime, copiedButton.keyframe, false);
 
             if (multiButtons.length) {
               updateMultiButtonPositions();
@@ -1253,7 +1257,14 @@
             }
           }, 10);
 
+          if (replace) {
+            deleteSelectedKeyframe();
+            multiButtons.forEach((button) => deleteKeyframe(button.keyframe));
+            multiButtons.length = 0;
+          }
+
           clearMultiButtons();
+
           copiedButtons.forEach((button) => {
             const addedKeyframe = addKeyframe(
               currentTime + button.timeDifferenceToSelectedButton,
@@ -1277,7 +1288,7 @@
           return;
         }
 
-        pasteKeyframe();
+        pasteKeyframe(isShiftKeyDown);
       });
       document.addEventListener("keydown", (event) => {
         if (event.target.nodeName === "INPUT") {
@@ -1301,8 +1312,9 @@
         time = clamp(time, 0, totalTime);
         const keyframe = {
           time,
-          name: "___",
+          name: keyframeToCopy?.name || "___",
         };
+
         keyframeStrings.forEach((keyframeString) => {
           if (keyframeToCopy) {
             keyframe[keyframeString] = keyframeToCopy[keyframeString];
@@ -1329,6 +1341,9 @@
           return keyframe.button;
         }
         const button = document.createElement("button");
+        if (keyframe.isSustain) {
+          button.classList.add("sustain");
+        }
         button.innerText = keyframe.name;
         button.keyframe = keyframe;
         keyframe.button = button;
@@ -1716,7 +1731,6 @@
         }
 
         const usedSpecialKey = isMac ? event.metaKey : event.ctrlKey;
-
         const { key } = event;
         if (usedSpecialKey) {
           let cancel = true;
@@ -1737,7 +1751,8 @@
               copySelectedKeyframe();
               break;
             case "v":
-              pasteKeyframe();
+              const replace = event.shiftKey;
+              pasteKeyframe(replace);
               break;
             case "s":
               save();
@@ -1854,10 +1869,22 @@
             }
           }
         }
-        
+
         if (document.activeElement?.nodeName === "BUTTON") {
           event.preventDefault();
           return false;
+        }
+      });
+
+      let isShiftKeyDown = false;
+      document.addEventListener("keydown", (event) => {
+        if (event.key === "Shift") {
+          isShiftKeyDown = true;
+        }
+      });
+      document.addEventListener("keyup", (event) => {
+        if (event.key === "Shift") {
+          isShiftKeyDown = false;
         }
       });
     </script>

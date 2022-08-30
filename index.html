@@ -5,29 +5,1960 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <script src="https://unpkg.com/tone@14.7.77/build/Tone.js"></script>
-    <script src="src/Envelope.js"></script>
-    <script src="src/pink-trombone/component.js" type="module"></script>
-    <script src="src/EventDispatcher.js"></script>
-    <script src="src/MPKMiniPlay.js"></script>
+    <script src="Envelope.js"></script>
+    <script src="pink-trombone.min.js" type="module"></script>
+    <script src="EventDispatcher.js"></script>
+    <script src="MPKMini.js"></script>
   </head>
 
   <style>
+    body {
+      margin: 0;
+      padding: 0;
+    }
     #container {
       width: 100%;
       height: 100%;
       display: grid;
-      grid-template-rows: repeat(2, 1fr);
-      grid-template-columns: repeat(2, 1fr);
+      grid-gap: 0.5rem;
+      grid-template-rows: 1.5rem 1fr 1.5rem 1fr 1.5rem;
+      grid-template-columns: 1fr 1fr;
+      grid-template-areas:
+        "menu menu"
+        "pinkTrombones presets"
+        "controls controls"
+        "timeline timeline"
+        "timelineSlider timelineSlider";
+    }
+    .bar {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    #menu {
+      grid-area: menu;
+    }
+    #pinkTrombones {
+      display: grid;
+      grid-template-rows: repeat(1, 1fr);
+      grid-template-columns: repeat(1, 1fr);
+      grid-area: pinkTrombones;
+    }
+    #presets {
+      grid-area: presets;
+    }
+    #controls {
+      grid-area: controls;
+    }
+    #presets .strings {
+      margin-top: 0.5rem;
+    }
+    #presets .strings .selected {
+      border: solid red;
+    }
+    #presets .strings > button:focus {
+      outline: none;
+    }
+    #timeline {
+      grid-area: timeline;
+      position: relative;
+
+      background-color: #f7f7f7;
+    }
+    #timeline > button {
+      position: absolute;
+      padding: 0;
+    }
+    #timeline > button.selected {
+      border: solid red;
+    }
+    #timeline > button:focus {
+      outline: none;
+    }
+    #timeline > button.multi-select {
+      border: solid green;
+    }
+    #timeline > button.sustain {
+      border-radius: 0.5rem;
+    }
+    #timelineSlider {
+      grid-area: timelineSlider;
     }
   </style>
 
   <body>
     <div id="container">
-      <pink-trombone></pink-trombone>
-      <pink-trombone></pink-trombone>
-      <pink-trombone></pink-trombone>
-      <pink-trombone></pink-trombone>
+      <div id="menu" class="bar">
+        <button onclick="save()" title="ctrl+s">save</button>
+        <button id="loadButton" onclick="loadInput.click()" title="ctrl+l">
+          load
+        </button>
+        <input
+          id="loadInput"
+          type="file"
+          accept="application/JSON"
+          multiple
+          hidden
+          oninput="onLoadInput()"
+        />
+        <button onclick="_export()" title="ctrl+e">export</button>
+        <a id="exportLink" hidden></a>
+        <label
+          > 👅 index
+          <input
+            id="tongueIndexInput"
+            class="tongue index"
+            type="number"
+            step="0.1"
+        /></label>
+        <label
+          >👅 diameter
+          <input
+            id="tongueDiameterInput"
+            class="tongue diameter"
+            type="number"
+            step="0.1"
+        /></label>
+        <label
+          >constriction index
+          <input
+            id="myConstrictionIndexInput"
+            class="myConstriction index"
+            type="number"
+            step="0.1"
+        /></label>
+        <label
+          >constriction diameter
+          <input
+            id="myConstrictionDiameterInput"
+            class="myConstriction diameter"
+            type="number"
+            step="0.1"
+        /></label>
+
+        <label
+          >🔈
+          <input id="intensityInput" class="intensity" type="number" step="0.1"
+        /></label>
+        <label
+          >🎵
+          <input id="frequencyInput" class="frequency" type="number" step="1"
+        /></label>
+        <label
+          >voiceness
+          <input id="voicenessInput" class="voiceness" type="number" step="0.1"
+        /></label>
+
+        <label
+          >wobble
+          <input
+            id="vibratoWobbleInput"
+            class="vibrato wobble"
+            type="number"
+            step="0.1"
+        /></label>
+        <label
+          >wobble 🔈
+          <input
+            id="vibratoGainInput"
+            class="vibrato gain"
+            type="number"
+            step="0.1"
+        /></label>
+        <label
+          >wobble 🎵
+          <input
+            id="vibratoFrequencyInput"
+            class="vibrato frequency"
+            type="number"
+            step="1"
+        /></label>
+      </div>
+      <div id="pinkTrombones">
+        <pink-trombone></pink-trombone>
+      </div>
+      <div id="presets">
+        <div class="phonemes"></div>
+        <hr style="margin-left: 0.5rem; margin-right: 0.5rem" />
+        <div class="controls bar">
+          <label
+            >name
+            <input
+              id="stringNameInput"
+              oninput="setStringName(event.target.value)"
+              type="text"
+              placeholder="string"
+              size="10"
+              maxlength="10"
+          /></label>
+          <button
+            id="createNewStringButton"
+            onclick="createNewString()"
+            title="ctrl+p"
+          >
+            new string
+          </button>
+          <button
+            id="deleteSelectedStringButton"
+            onclick="deleteSelectedString()"
+            title="ctrl+Backspace"
+          >
+            delete string
+          </button>
+          <button
+            id="duplicateSelectedStringButton"
+            onclick="duplicateSelectedString()"
+            title="ctrl+d"
+          >
+            duplicate string
+          </button>
+        </div>
+        <div class="strings"></div>
+      </div>
+      <div id="controls" class="bar">
+        <button
+          id="togglePlaybackButton"
+          onclick="togglePlayback()"
+          title="ctrl+Space"
+        >
+          play
+        </button>
+        <button id="stopButton" onclick="stop()" title="">stop</button>
+        <label
+          >loop
+          <input
+            type="checkbox"
+            id="toggleLoopInput"
+            oninput="toggleLoop()"
+            title=""
+        /></label>
+        <label
+          >current time
+          <input
+            type="number"
+            id="currentTimeInput"
+            step="0.1"
+            min="0"
+            value="0"
+            placeholder="0"
+            max="5"
+            oninput="onCurrentTimeInput(Number(event.target.value))" />
+          / <span id="totalTimeSpan"></span
+        ></label>
+        <button id="addKeyframeButton" onclick="addKeyframe()" title="ctrl+k">
+          add keyframe
+        </button>
+        <button
+          id="updateSelectedKeyframeButton"
+          onclick="updateSelectedKeyframe()"
+          disabled
+          hidden
+        >
+          update keyframe
+        </button>
+        <label
+          >keyframe name
+          <input
+            disabled
+            id="keyframeNameInput"
+            oninput="setKeyframeName(event.target.value)"
+            type="text"
+            placeholder="name"
+            size="10"
+            maxlength="10"
+        /></label>
+
+        <button
+          id="deleteSelectedKeyframeButton"
+          onclick="deleteSelectedKeyframe()"
+          disabled
+          title="Backspace"
+        >
+          delete keyframe
+        </button>
+        <button
+          id="copySelectedKeyframeButton"
+          onclick="copySelectedKeyframe()"
+          disabled
+          title="ctrl+c"
+        >
+          copy keyframe
+        </button>
+        <button
+          id="pasteKeyframeButton"
+          onclick="pasteKeyframe()"
+          disabled
+          title="ctrl+v"
+        >
+          paste keyframe
+        </button>
+
+        <label
+          >is sustain?
+          <input
+            type="checkbox"
+            id="isSelectedKeyframeSustainButton"
+            oninput="setSelectedKeyframeSustain(event.target.checked)"
+            disabled
+        /></label>
+
+        <label
+          >speed
+          <input
+            type="number"
+            id="defaultEnvelopeSpeedInput"
+            step="0.1"
+            min="0.1"
+            value="0"
+            placeholder="0"
+            max="5"
+            oninput="setDefaultEnvelopeSpeed(Number(event.target.value))"
+        /></label>
+
+        <label
+          >pitch
+          <input
+            type="checkbox"
+            id="toggleEnvelopePitchInput"
+            oninput="toggleEnvelopePitch()"
+            checked
+        /></label>
+      </div>
+      <div id="timeline"></div>
+      <input
+        id="timelineSlider"
+        type="range"
+        min="0"
+        max="5"
+        oninput="onTimelineSliderInput(Number(event.target.value))"
+        value="0"
+        step="0.01"
+      />
     </div>
-    <script src="src/script.js"></script>
+
+    <script>
+      const audioContext = Tone.context.rawContext._nativeAudioContext;
+      audioContext.addEventListener("statechange", () => {
+        console.log(audioContext.state);
+        if (audioContext.state !== "running") {
+          document.addEventListener("click", () => audioContext.resume(), {
+            once: true,
+          });
+        }
+      });
+      audioContext.dispatchEvent(new Event("statechange"));
+
+      const pinkTromboneParameters = {
+        tongue: {
+          index: { min: 11, max: 30, toFixed: 1 },
+          diameter: { min: 2, max: 3.6, toFixed: 1 },
+        },
+        myConstriction: {
+          index: { min: 10.8, max: 43.7, toFixed: 1 },
+          diameter: { min: -1.2, max: 5, toFixed: 1 },
+        },
+
+        intensity: { min: 0, max: 2, toFixed: 1 },
+        frequency: { min: 20, max: 960 },
+        voiceness: { min: 0, max: 1, toFixed: 1 },
+        vibrato: {
+          wobble: { min: 0, max: 1, toFixed: 1 },
+          gain: { min: 0, max: 2, toFixed: 1 },
+          frequency: { min: 0, max: 20, toFixed: 0 },
+        },
+      };
+      const setPinkTromboneValue = (
+        type,
+        subtype,
+        value,
+        pinkTromboneElement = pinkTromboneElements[0],
+        offset = 0.01
+      ) => {
+        if (subtype) {
+          pinkTromboneElement[type][subtype].linearRampToValueAtTime(
+            value,
+            pinkTromboneElement.audioContext.currentTime + offset
+          );
+        } else {
+          pinkTromboneElement[type].linearRampToValueAtTime(
+            value,
+            pinkTromboneElement.audioContext.currentTime + offset
+          );
+        }
+      };
+      const setPinkTrombonesValue = (type, subtype, value, offset) => {
+        pinkTromboneElements.forEach((pinkTromboneElement) => {
+          setPinkTromboneValue(
+            type,
+            subtype,
+            value,
+            pinkTromboneElement,
+            offset
+          );
+        });
+      };
+      for (const type in pinkTromboneParameters) {
+        if (!("min" in pinkTromboneParameters[type])) {
+          for (const subtype in pinkTromboneParameters[type]) {
+            const input = document.querySelector(
+              `#menu input.${type}.${subtype}`
+            );
+            input.addEventListener("input", (event) => {
+              const value = Number(event.target.value);
+              setPinkTrombonesValue(type, subtype, value);
+              if (selectedButton) {
+                selectedButton.keyframe[`${type}.${subtype}`] = value;
+                updateButton(selectedButton);
+                updateMultiButtons();
+              }
+            });
+            for (const attribute in pinkTromboneParameters[type][subtype]) {
+              input[attribute] =
+                pinkTromboneParameters[type][subtype][attribute];
+            }
+          }
+        } else {
+          const input = document.querySelector(`#menu input.${type}`);
+          input.addEventListener("input", (event) => {
+            const value = Number(event.target.value);
+            if (type === "voiceness") {
+              setVoiceness(value);
+            } else {
+              setPinkTrombonesValue(type, null, value);
+              if (selectedButton) {
+                selectedButton.keyframe[type] = value;
+                updateButton(selectedButton);
+                updateMultiButtons();
+              }
+            }
+          });
+          for (const attribute in pinkTromboneParameters[type]) {
+            input[attribute] = pinkTromboneParameters[type][attribute];
+          }
+        }
+      }
+
+      const updateMenuInputs = (
+        pinkTromboneElement = pinkTromboneElements[0]
+      ) => {
+        for (const type in pinkTromboneParameters) {
+          if (!("min" in pinkTromboneParameters[type])) {
+            for (const subtype in pinkTromboneParameters[type]) {
+              updateMenuInput(type, subtype, pinkTromboneElement);
+            }
+          } else {
+            updateMenuInput(type, null, pinkTromboneElement);
+          }
+        }
+      };
+      const updateMenuInput = (
+        type,
+        subtype,
+        pinkTromboneElement = pinkTromboneElements[0]
+      ) => {
+        setTimeout(() => {
+          let querySelector = `#menu input.${type}`;
+          if (subtype) {
+            querySelector += `.${subtype}`;
+          }
+          const input = document.querySelector(querySelector);
+
+          let value = pinkTromboneElement[type];
+          let toFixed = 0;
+          if (subtype) {
+            value = value[subtype];
+            toFixed = pinkTromboneParameters[type][subtype].toFixed || 0;
+          } else {
+            toFixed = pinkTromboneParameters[type].toFixed || 0;
+          }
+          if (value) {
+            value = value.value;
+          } else {
+            if (type === "voiceness") {
+              value = voiceness;
+            }
+          }
+
+          input.value = value.toFixed(toFixed);
+        }, 10);
+      };
+
+      let currentTime = 0;
+      const onCurrentTimeInput = (time) => {
+        setCurrentTime(time);
+        timelineSlider.value = currentTime;
+      };
+      const onTimelineSliderInput = (time) => {
+        setCurrentTime(time);
+        currentTimeInput.value = currentTime;
+      };
+      const setCurrentTime = (
+        time,
+        pinkTromboneElement = pinkTromboneElements[0]
+      ) => {
+        currentTime = time;
+
+        const { before, after } = getAdjacentKeyframes();
+        if (before || after) {
+          let keyframeToCopy;
+          if (before === after) {
+            keyframeToCopy = before;
+          } else {
+            if (before && after) {
+              const interpolation = getInterpolation(
+                before.time,
+                after.time,
+                time
+              );
+              keyframeToCopy = interpolateKeyframes(
+                before,
+                after,
+                interpolation
+              );
+            } else {
+              keyframeToCopy = before || after;
+            }
+          }
+
+          setPinkTromboneWithKeyframe(keyframeToCopy, pinkTromboneElement);
+        }
+      };
+      const getInterpolation = (from, to, value) => {
+        return (value - from) / (to - from);
+      };
+      const setPinkTromboneWithKeyframe = (
+        keyframe,
+        pinkTromboneElement = pinkTromboneElements[0]
+      ) => {
+        keyframeStrings.forEach((keyframeString) => {
+          setKeyframeStringValue(
+            keyframeString,
+            keyframe[keyframeString],
+            pinkTromboneElement
+          );
+        });
+        setTimeout(() => {
+          updateMenuInputs();
+        }, 10);
+      };
+      const interpolateKeyframes = (before, after, interpolation) => {
+        const interpolatedKeyframe = {};
+        keyframeStrings.forEach((keyframeString) => {
+          const beforeValue = before[keyframeString];
+          const afterValue = after[keyframeString];
+          interpolatedKeyframe[keyframeString] = interpolate(
+            beforeValue,
+            afterValue,
+            interpolation
+          );
+        });
+        return interpolatedKeyframe;
+      };
+      const getAdjacentKeyframes = (time = currentTime) => {
+        const adjacentKeyframes = { before: null, after: null, closest: null };
+
+        keyframes.some((keyframe) => {
+          if (!adjacentKeyframes.after && keyframe.time <= time) {
+            adjacentKeyframes.before = keyframe;
+          }
+          if (!adjacentKeyframes.after && keyframe.time >= time) {
+            adjacentKeyframes.after = keyframe;
+          }
+          return adjacentKeyframes.before && adjacentKeyframes.after;
+        });
+
+        if (adjacentKeyframes.before && adjacentKeyframes.after) {
+          adjacentKeyframes.closest =
+            Math.abs(time - adjacentKeyframes.before.time) <=
+            Math.abs(time - adjacentKeyframes.after.time)
+              ? adjacentKeyframes.before
+              : adjacentKeyframes.after;
+        } else {
+          adjacentKeyframes.closest =
+            adjacentKeyframes.before || adjacentKeyframes.after;
+        }
+
+        return adjacentKeyframes;
+      };
+
+      let shouldLoop = false;
+      const toggleLoop = () => {
+        shouldLoop = !shouldLoop;
+        toggleLoopInput.checked = shouldLoop;
+      };
+
+      const playKeyframes = (pinkTromboneElement = pinkTromboneElements[0]) => {
+        setCurrentTime(currentTime);
+        keyframes
+          .filter((keyframe) => keyframe.time > currentTime)
+          .forEach((keyframe) => {
+            keyframeStrings.forEach((keyframeString) => {
+              const path = keyframeString.split(".");
+              let value = pinkTromboneElement;
+              while (path.length) {
+                value = value[path.shift()];
+              }
+              const offset = keyframe.time - currentTime;
+              value.linearRampToValueAtTime(
+                keyframe[keyframeString],
+                pinkTromboneElement.audioContext.currentTime + offset
+              );
+            });
+          });
+      };
+      const cancelKeyframes = () => {
+        cancelKeyframeStrings();
+      };
+
+      let defaultEnvelopeSpeed = 1;
+      const setDefaultEnvelopeSpeed = (speed) => {
+        defaultEnvelopeSpeed = speed;
+      };
+      defaultEnvelopeSpeedInput.value = defaultEnvelopeSpeed;
+      let enableEnvelopePitchBending = true;
+      const toggleEnvelopePitch = () => {
+        enableEnvelopePitchBending = !enableEnvelopePitchBending;
+      };
+      const triggerAttack = (
+        velocity = 1,
+        frequency,
+        speed = defaultEnvelopeSpeed,
+        pinkTromboneElement = pinkTromboneElements[0],
+        targetKeyframes = keyframes
+      ) => {
+        clearTimeout(pinkTromboneElement.envelopeReleaseTimeoutId);
+        clearTimeout(pinkTromboneElement.envelopeAttackTimeoutId);
+        clearTimeout(pinkTromboneElement.envelopeReleaseEndTimeoutId);
+
+        cancelKeyframeStrings();
+
+        envelopeKeyframes = targetKeyframes;
+        let netOffset = 0;
+        let envelopeOffset = 0;
+        if (envelopeKeyframes != keyframes) {
+          envelopeOffset = -envelopeKeyframes[0].time / speed;
+        }
+        const containsSustain = envelopeKeyframes.some((keyframe) => {
+          keyframeStrings.forEach((keyframeString) => {
+            const path = keyframeString.split(".");
+            let value = pinkTromboneElement;
+            while (path.length) {
+              value = value[path.shift()];
+            }
+            let rawValue = keyframe[keyframeString];
+            if (keyframeString === "intensity") {
+              rawValue *= velocity;
+            }
+            if (enableEnvelopePitchBending && keyframeString === "frequency") {
+              const frequencyRatio = rawValue / envelopeKeyframes[0].frequency;
+              rawValue = frequencyRatio * frequency.toFrequency();
+            }
+
+            value.linearRampToValueAtTime(
+              rawValue,
+              pinkTromboneElement.audioContext.currentTime +
+                envelopeOffset +
+                keyframe.time / speed
+            );
+          });
+          netOffset = keyframe.time / speed;
+          return keyframe.isSustain;
+        });
+        netOffset += envelopeOffset;
+        pinkTromboneElement.envelopeAttackEnd = netOffset + Date.now() / 1000;
+
+        currentEnvelopePinkTromboneElement = pinkTromboneElement;
+        pinkTromboneElement.isEnvelopeOnAttack = true;
+        pinkTromboneElement.envelopeAttackStartTime = Date.now() / 1000;
+        updateUIForEnvelopeOnAnimationFrame();
+
+        if (!containsSustain) {
+          pinkTromboneElement.envelopeAttackTimeoutId = setTimeout(() => {
+            if (currentEnvelopePinkTromboneElement === pinkTromboneElement) {
+              currentEnvelopePinkTromboneElement = null;
+            }
+          }, netOffset * 1000);
+        }
+
+        return netOffset;
+      };
+      const triggerRelease = (
+        attackOffset = 0,
+        frequency,
+        speed = defaultEnvelopeSpeed,
+        pinkTromboneElement = pinkTromboneElements[0]
+      ) => {
+        const timeUntilAttackEnds = Math.max(
+          0,
+          pinkTromboneElement.envelopeAttackEnd - Date.now() / 1000
+        );
+        pinkTromboneElement.envelopeReleaseTimeoutId = setTimeout(() => {
+          pinkTromboneElement.isEnvelopeOnAttack = false;
+          pinkTromboneElement.envelopeReleaseStartTime = Date.now() / 1000;
+          cancelKeyframeStrings();
+          let netOffset = 0;
+          let sustainOffset = 0;
+          let reachedSustain = false;
+          envelopeKeyframes.forEach((keyframe) => {
+            if (!reachedSustain) {
+              if (keyframe.isSustain) {
+                reachedSustain = true;
+                sustainOffset = keyframe.time / speed;
+              }
+            }
+            if (reachedSustain) {
+              keyframeStrings.forEach((keyframeString) => {
+                const path = keyframeString.split(".");
+                let value = pinkTromboneElement;
+                while (path.length) {
+                  value = value[path.shift()];
+                }
+                let rawValue = keyframe[keyframeString];
+                if (
+                  enableEnvelopePitchBending &&
+                  keyframeString === "frequency"
+                ) {
+                  const frequencyRatio =
+                    rawValue / envelopeKeyframes[0].frequency;
+                  rawValue = frequencyRatio * frequency.toFrequency();
+                }
+
+                value.linearRampToValueAtTime(
+                  rawValue,
+                  pinkTromboneElement.audioContext.currentTime +
+                    attackOffset +
+                    keyframe.time / speed -
+                    sustainOffset
+                );
+              });
+              netOffset = keyframe.time / speed - sustainOffset;
+            }
+          });
+          netOffset += attackOffset;
+          pinkTromboneElement.envelopeReleaseEnd =
+            Date.now() / 1000 + netOffset;
+          pinkTromboneElement.envelopeReleaseEndTimeoutId = setTimeout(() => {
+            if (currentEnvelopePinkTromboneElement === pinkTromboneElement) {
+              currentEnvelopePinkTromboneElement = null;
+            }
+          }, netOffset * 1000);
+        }, timeUntilAttackEnds * 1000);
+      };
+      const triggerAttackRelease = (
+        duration,
+        velocity,
+        frequency,
+        speed,
+        pinkTromboneElement = pinkTromboneElements[0]
+      ) => {
+        const offset = triggerAttack(
+          velocity,
+          frequency,
+          speed,
+          pinkTromboneElement
+        );
+        triggerRelease(
+          offset + duration,
+          frequency,
+          speed,
+          pinkTromboneElement
+        );
+      };
+      let envelopeKeyframes = [];
+      const updateTimelineForEnvelope = (pinkTromeboneElement) => {
+        let timeOffset = 0;
+        if (pinkTromeboneElement.isEnvelopeOnAttack) {
+          let interpolation = getInterpolation(
+            pinkTromeboneElement.envelopeAttackStartTime,
+            pinkTromeboneElement.envelopeAttackEnd,
+            Date.now() / 1000
+          );
+          interpolation = Math.min(interpolation, 1);
+
+          let toTime = 0;
+          envelopeKeyframes.some((keyframe) => {
+            toTime = keyframe.time;
+            return keyframe.isSustain;
+          });
+          let fromTime = 0;
+          if (envelopeKeyframes !== keyframes) {
+            fromTime = envelopeKeyframes[0].time;
+          }
+          timeOffset = interpolate(fromTime, toTime, interpolation);
+        } else {
+          let interpolation = getInterpolation(
+            pinkTromeboneElement.envelopeReleaseStartTime,
+            pinkTromeboneElement.envelopeReleaseEnd,
+            Date.now() / 1000
+          );
+          interpolation = Math.min(interpolation, 1);
+
+          let toTime = envelopeKeyframes[envelopeKeyframes.length - 1].time;
+          let fromTime = 0;
+          envelopeKeyframes.some((keyframe) => {
+            fromTime = keyframe.time;
+            return keyframe.isSustain;
+          });
+          timeOffset = interpolate(fromTime, toTime, interpolation);
+        }
+        timelineSlider.value = timeOffset;
+        currentTimeInput.value = timeOffset;
+      };
+      let currentEnvelopePinkTromboneElement;
+      const updateUIForEnvelopeOnAnimationFrame = () => {
+        if (currentEnvelopePinkTromboneElement) {
+          updateTimelineForEnvelope(currentEnvelopePinkTromboneElement);
+          updateMenuInputs(currentEnvelopePinkTromboneElement);
+          requestAnimationFrame(() => {
+            updateUIForEnvelopeOnAnimationFrame();
+          });
+        }
+      };
+
+      let isPlaying = false;
+      let playStartTime = 0;
+      let playStartCurrentTime = 0;
+      let shouldResetOnPlay = false;
+      const play = () => {
+        if (!isPlaying && keyframes.length > 0) {
+          cancelKeyframeStrings();
+          playStartTime = Date.now() / 1000;
+          playStartCurrentTime = shouldResetOnPlay ? 0 : currentTime;
+          if (shouldResetOnPlay) {
+            setCurrentTime(0);
+            shouldResetOnPlay = false;
+          }
+          isPlaying = true;
+          togglePlaybackButton.innerText = "pause";
+          playKeyframes();
+          updateUIOnAnimationFrame();
+        }
+      };
+      const silence = () => {
+        //console.log("silence");
+        deselectButton();
+        clearMultiButtons();
+        setPinkTrombonesValue("intensity", null, 0);
+      };
+      const pause = () => {
+        if (isPlaying) {
+          isPlaying = false;
+          togglePlaybackButton.innerText = "play";
+          cancelKeyframes();
+          setCurrentTime(timeOffset);
+          silence();
+        }
+      };
+      const cancelKeyframeStrings = (
+        pinkTromboneElement = pinkTromboneElements[0]
+      ) => {
+        keyframeStrings.forEach((keyframeString) => {
+          cancelKeyframeString(keyframeString, pinkTromboneElement);
+        });
+      };
+      const cancelKeyframeString = (
+        keyframeString,
+        pinkTromboneElement = pinkTromboneElements[0]
+      ) => {
+        const path = keyframeString.split(".");
+        let value = pinkTromboneElement;
+        while (path.length) {
+          value = value[path.shift()];
+        }
+        value.cancelScheduledValues(
+          pinkTromboneElement.audioContext.currentTime + 0.01
+        );
+      };
+      let timeSincePlay;
+      let timeOffset;
+      const updateTimeline = () => {
+        timeSincePlay = Date.now() / 1000 - playStartTime;
+        timeOffset = timeSincePlay + playStartCurrentTime;
+        timelineSlider.value = timeOffset;
+        currentTimeInput.value = timeOffset;
+        if (timeOffset > keyframes[keyframes.length - 1].time && isPlaying) {
+          if (shouldLoop) {
+            isPlaying = false;
+            currentTime = 0;
+            play();
+          } else {
+            stop();
+          }
+        }
+      };
+      const updateUIOnAnimationFrame = () => {
+        updateTimeline();
+        updateMenuInputs();
+        if (isPlaying) {
+          requestAnimationFrame(() => {
+            updateUIOnAnimationFrame();
+          });
+        }
+      };
+      const togglePlayback = () => {
+        if (isPlaying) {
+          pause();
+        } else {
+          play();
+        }
+      };
+      const stop = () => {
+        pause();
+        shouldResetOnPlay = true;
+        timelineSlider.value = 0;
+        currentTimeInput.value = 0;
+        return;
+        setTimeout(() => {
+          setCurrentTime(0);
+          timelineSlider.value = 0;
+          currentTimeInput.value = 0;
+        }, 0.01);
+      };
+
+      let keyframes = [];
+      const strings = [];
+      const stringsContainer = document.querySelector("#presets .strings");
+      let defaultStringName = "myString";
+      const createNewString = (stringToCopy, isLoading = false) => {
+        const button = document.createElement("button");
+        let name = defaultStringName;
+        if (stringToCopy) {
+          name = stringToCopy.name;
+          if (!isLoading) {
+            name += " copy";
+          }
+        }
+        if (!isLoading) {
+          let count = 0;
+          strings.forEach((string) => {
+            const splitStringName = string.name.split(" ");
+            const _count =
+              splitStringName.length > 1
+                ? Number(splitStringName.pop()) + 1
+                : 1;
+            const prefix = splitStringName.join(" ");
+            if (prefix == name) {
+              count = _count;
+            }
+          });
+          if (count > 0) {
+            name += ` ${count}`;
+          }
+        }
+
+        button.innerText = name;
+
+        const newKeyframes = stringToCopy
+          ? stringToCopy.keyframes.map((keyframe) => {
+              keyframe = Object.assign({}, keyframe);
+              delete keyframe.button;
+              return keyframe;
+            })
+          : [];
+        button.keyframes = newKeyframes;
+
+        const string = {
+          button,
+          keyframes: newKeyframes,
+          name,
+        };
+
+        stringsContainer.appendChild(button);
+        strings.push(string);
+
+        button.addEventListener("click", () => {
+          setString(button.string);
+        });
+        button.string = string;
+        setString(string);
+        return string;
+      };
+      const deleteSelectedString = () => {
+        if (selectedString && strings.length > 1) {
+          deleteString(selectedString);
+        }
+      };
+      const deleteString = (string) => {
+        string.button.remove();
+        string.keyframes.forEach((keyframe) => keyframe.button?.remove());
+        const stringIndex = strings.indexOf(string);
+        strings.splice(stringIndex, 1);
+        const newStringIndex = clamp(stringIndex, 0, strings.length - 1);
+        setString(strings[newStringIndex]);
+      };
+      const duplicateSelectedString = () => {
+        if (selectedString) {
+          const duplicatedString = createNewString(selectedString);
+        }
+      };
+      let multiButtons = [];
+      const addMultiButton = (button) => {
+        if (button && !multiButtons.includes(button)) {
+          multiButtons.push(button);
+          button.classList.add("multi-select");
+          updateMultiButtonPosition(button);
+        }
+      };
+      const removeMultiButton = (button) => {
+        if (multiButtons.includes(button)) {
+          multiButtons.splice(multiButtons.indexOf(button), 1);
+          button.classList.remove("multi-select");
+        }
+      };
+      const clearMultiButtons = () => {
+        multiButtons.forEach((button) =>
+          button.classList.remove("multi-select")
+        );
+        multiButtons.length = 0;
+      };
+      const updateMultiButtonPositions = () => {
+        multiButtons.forEach((button) => {
+          updateMultiButtonPosition(button);
+        });
+      };
+      const updateMultiButtonPosition = (button) => {
+        button.frequencyRatioToSelectedButton =
+          button.keyframe.frequency / selectedButton.keyframe.frequency;
+        button.timeDifferenceToSelectedButton =
+          button.keyframe.time - selectedButton.keyframe.time;
+      };
+      let selectedString;
+      const setString = (string) => {
+        if (selectedString == string) {
+          return;
+        }
+        if (selectedString) {
+          //selectedString.button.disabled = false;
+          selectedString.button.classList.remove("selected");
+        }
+        keyframes.forEach((keyframe) => {
+          keyframe.button.hidden = true;
+          keyframe.button.classList.remove("multi-select");
+        });
+        keyframes = string.keyframes;
+        clearMultiButtons();
+        stringNameInput.value = string.name;
+        selectedString = string;
+        //selectedString.button.disabled = true;
+        selectedString.button.classList.add("selected");
+
+        keyframes.forEach((keyframe) => {
+          createKeyframeButton(keyframe);
+        });
+      };
+      const setStringName = (newName) => {
+        if (selectedString) {
+          selectedString.name = newName;
+          selectedString.button.innerText = newName;
+          stringNameInput.value = newName;
+        }
+      };
+      createNewString();
+      const keyframeStrings = [
+        "frequency",
+
+        "tongue.index",
+        "tongue.diameter",
+
+        "myConstriction.index",
+        "myConstriction.diameter",
+
+        "tenseness",
+        "loudness",
+
+        "intensity",
+      ];
+      const getKeyframeStringValue = (
+        keyframeString,
+        pinkTromboneElement = pinkTromboneElements[0]
+      ) => {
+        const path = keyframeString.split(".");
+        let value = pinkTromboneElement;
+        while (path.length) {
+          value = value[path.shift()];
+        }
+        value = value.value;
+        return value;
+      };
+      const setKeyframeStringValue = (
+        keyframeString,
+        newValue,
+        pinkTromboneElement = pinkTromboneElements[0]
+      ) => {
+        const path = keyframeString.split(".");
+        let value = pinkTromboneElement;
+        while (path.length) {
+          value = value[path.shift()];
+        }
+        value.value = newValue;
+      };
+      let selectedButton;
+      let draggingButton;
+      const clamp = (value, min = 0, max = 1) => {
+        return Math.max(min, Math.min(max, value));
+      };
+      const updateMultiButtons = () => {
+        multiButtons.forEach((button) => {
+          button.keyframe.frequency =
+            selectedButton.keyframe.frequency *
+            button.frequencyRatioToSelectedButton;
+          button.keyframe.time = clamp(
+            selectedButton.keyframe.time +
+              button.timeDifferenceToSelectedButton,
+            0,
+            totalTime
+          );
+          updateButton(button);
+        });
+      };
+      const setMultiButtons = (keyframeString, value) => {
+        multiButtons.forEach((button) => {
+          button.keyframe[keyframeString] = value;
+        });
+      };
+      timeline.addEventListener("mousemove", (event) => {
+        if (draggingButton) {
+          const x = event.clientX / timeline.clientWidth;
+          const y =
+            (event.clientY - timeline.offsetTop) / timeline.clientHeight;
+
+          const time = x * totalTime;
+          draggingButton.keyframe.time = time;
+
+          const { min, max } = pinkTromboneParameters.frequency;
+          let frequency = interpolate(Math.log(min), Math.log(max), 1 - y);
+          frequency = Math.exp(frequency);
+          draggingButton.keyframe.frequency = frequency;
+
+          updateButton(draggingButton);
+          setPinkTromboneWithKeyframe(draggingButton.keyframe);
+
+          updateMultiButtons();
+        }
+      });
+      timeline.addEventListener("mousedown", (event) => {
+        if (event.target === timeline && event.target != selectedButton) {
+          deselectButton();
+          clearMultiButtons();
+        }
+      });
+      const selectButton = (button) => {
+        deselectButton();
+
+        selectedButton = button;
+        selectedButton.classList.add("selected");
+
+        setPinkTromboneWithKeyframe(button.keyframe);
+
+        keyframeNameInput.disabled = false;
+        keyframeNameInput.value = button.keyframe.name;
+
+        deleteSelectedKeyframeButton.disabled = false;
+        updateSelectedKeyframeButton.disabled = false;
+        copySelectedKeyframeButton.disabled = false;
+        isSelectedKeyframeSustainButton.disabled =
+          !button.keyframe.isSustain &&
+          keyframes.some((keyframe) => keyframe.isSustain);
+        isSelectedKeyframeSustainButton.checked = button.keyframe.isSustain;
+
+        updateMultiButtonPositions();
+      };
+      const deselectButton = () => {
+        if (selectedButton) {
+          selectedButton.classList.remove("selected");
+          selectedButton = null;
+          keyframeNameInput.disabled = true;
+          keyframeNameInput.value = "";
+
+          deleteSelectedKeyframeButton.disabled = true;
+          updateSelectedKeyframeButton.disabled = true;
+          copySelectedKeyframeButton.disabled = true;
+          isSelectedKeyframeSustainButton.disabled = true;
+          isSelectedKeyframeSustainButton.checked = false;
+        }
+      };
+      const setKeyframeName = (newName) => {
+        if (selectedButton) {
+          selectedButton.keyframe.name = newName;
+          selectedButton.innerText = newName;
+        }
+      };
+      const setSelectedKeyframeSustain = (isSustain) => {
+        if (selectedButton) {
+          setKeyframeSustain(selectedButton, isSustain);
+          isSelectedKeyframeSustainButton.checked =
+            selectedButton.keyframe.isSustain;
+        }
+      };
+      const toggleSelectedKeyframeSustain = () => {
+        if (selectedButton) {
+          setSelectedKeyframeSustain(!selectedButton.keyframe.isSustain);
+        }
+      };
+      const setKeyframeSustain = (button, isSustain) => {
+        if (isSustain) {
+          if (keyframes.every((keyframe) => !keyframe.isSustain)) {
+            button.keyframe.isSustain = true;
+            button.classList.add("sustain");
+          }
+        } else {
+          button.keyframe.isSustain = false;
+          button.classList.remove("sustain");
+        }
+      };
+      const totalTime = 3;
+      totalTimeSpan.innerText = totalTime;
+      currentTimeInput.max = totalTime;
+      timelineSlider.max = totalTime;
+      const updateButton = (button) => {
+        button.style.left = `${100 * (button.keyframe.time / totalTime)}%`;
+        const { min, max } = pinkTromboneParameters.frequency;
+        const interpolation = getInterpolation(
+          Math.log(min),
+          Math.log(max),
+          Math.log(button.keyframe.frequency)
+        );
+        button.style.top = `${100 * (1 - interpolation)}%`;
+
+        const voiceness = getVoicenessFromTenseness(button.keyframe.tenseness);
+        button.style.fontWeight = voiceness < 0.4 ? "normal" : "bold";
+
+        button.style.fontSize = `${interpolate(
+          0.5,
+          1.5,
+          button.keyframe.intensity
+        )}rem`;
+      };
+      let copiedButton;
+      const copySelectedKeyframe = () => {
+        if (selectedButton) {
+          copyKeyframe(selectedButton);
+        }
+      };
+      let copiedButtons = [];
+      const copyKeyframe = (button) => {
+        copiedButton = button;
+        copiedButtons = multiButtons.slice();
+        pasteKeyframeButton.disabled = !copiedButton;
+      };
+      const pasteKeyframe = () => {
+        if (copiedButton) {
+          setPinkTromboneWithKeyframe(copiedButton.keyframe);
+          setTimeout(() => {
+            addKeyframe(currentTime, null, false);
+
+            if (multiButtons.length) {
+              updateMultiButtonPositions();
+              sortKeyframes();
+            }
+          }, 10);
+
+          clearMultiButtons();
+          copiedButtons.forEach((button) => {
+            const addedKeyframe = addKeyframe(
+              currentTime + button.timeDifferenceToSelectedButton,
+              button.keyframe,
+              false
+            );
+            addMultiButton(addedKeyframe.button);
+          });
+          copiedButtons.length = 0;
+        }
+      };
+      document.addEventListener("copy", (event) => {
+        if (event.target.nodeName === "INPUT") {
+          return;
+        }
+
+        copySelectedKeyframe();
+      });
+      document.addEventListener("paste", (event) => {
+        if (event.target.nodeName === "INPUT") {
+          return;
+        }
+
+        pasteKeyframe();
+      });
+      document.addEventListener("keydown", (event) => {
+        if (event.target.nodeName === "INPUT") {
+          return;
+        }
+
+        if (event.key === "Backspace" || event.key === "Delete") {
+          //copiedButtons.length = 0;
+          multiButtons.forEach((button) => deleteKeyframe(button.keyframe));
+          multiButtons.length = 0;
+
+          deleteSelectedKeyframe();
+        }
+      });
+      const addKeyframe = (
+        time = currentTime,
+        keyframeToCopy,
+        shouldClearMultiButtons = true,
+        pinkTromboneElement = pinkTromboneElements[0]
+      ) => {
+        time = clamp(time, 0, totalTime);
+        const keyframe = {
+          time,
+          name: "___",
+        };
+        keyframeStrings.forEach((keyframeString) => {
+          if (keyframeToCopy) {
+            keyframe[keyframeString] = keyframeToCopy[keyframeString];
+          } else {
+            keyframe[keyframeString] = getKeyframeStringValue(
+              keyframeString,
+              pinkTromboneElement
+            );
+          }
+        });
+        keyframes.push(keyframe);
+        sortKeyframes();
+
+        const button = createKeyframeButton(keyframe);
+        selectButton(button);
+        if (shouldClearMultiButtons) {
+          clearMultiButtons();
+        }
+        return keyframe;
+      };
+      const createKeyframeButton = (keyframe) => {
+        if (keyframe.button) {
+          keyframe.button.hidden = false;
+          return keyframe.button;
+        }
+        const button = document.createElement("button");
+        button.innerText = keyframe.name;
+        button.keyframe = keyframe;
+        keyframe.button = button;
+        updateButton(button);
+        button.addEventListener("click", (event) => {
+          const usedSpecialKey = isMac ? event.metaKey : event.ctrlKey;
+          if (!selectedButton) {
+            clearMultiButtons();
+            selectButton(button);
+          } else if (usedSpecialKey) {
+            if (multiButtons.includes(button)) {
+              removeMultiButton(button);
+            } else {
+              if (button !== selectedButton) {
+                addMultiButton(button);
+              }
+            }
+          } else if (event.shiftKey) {
+            includeButtonsUpToThisButton(button);
+          } else {
+            if (event.target != selectedButton) {
+              clearMultiButtons();
+              selectButton(button);
+            }
+          }
+        });
+
+        let shouldDragRelativeToSelectedButton = false;
+        button.addEventListener("mousedown", (event) => {
+          if (!draggingButton) {
+            if (multiButtons.includes(button)) {
+              if (shouldDragRelativeToSelectedButton) {
+                draggingButton = selectedButton;
+              } else {
+                removeMultiButton(button);
+                addMultiButton(selectedButton);
+                selectButton(button);
+                draggingButton = button;
+              }
+            } else {
+              draggingButton = button;
+            }
+            document.addEventListener(
+              "mouseup",
+              (event) => {
+                draggingButton = null;
+                sortKeyframes();
+              },
+              { once: true }
+            );
+          }
+        });
+        timeline.appendChild(button);
+        return button;
+      };
+      const includeButtonsUpToThisButton = (button) => {
+        const buttonIndex = keyframes.findIndex(
+          (keyframe) => keyframe.button === button
+        );
+        const selectedButtonIndex = keyframes.findIndex(
+          (keyframe) => keyframe.button === selectedButton
+        );
+        const fromIndex = Math.min(buttonIndex, selectedButtonIndex);
+        const toIndex = Math.max(buttonIndex, selectedButtonIndex);
+        clearMultiButtons();
+        keyframes
+          .slice(fromIndex, toIndex + 1)
+          .map((keyframe) => keyframe.button)
+          .filter((button) => button !== selectedButton)
+          .forEach((button) => addMultiButton(button));
+      };
+      const updateSelectedKeyframe = (key) => {
+        if (selectedButton) {
+          updateKeyframe(selectedButton, key);
+        }
+      };
+      const updateKeyframe = (
+        button,
+        key,
+        pinkTromboneElement = pinkTromboneElements[0]
+      ) => {
+        setTimeout(() => {
+          if (button?.keyframe) {
+            let _keyframeStrings = keyframeStrings;
+            if (typeof key === "string") {
+              _keyframeStrings = [key];
+            } else if (Array.isArray(key)) {
+              _keyframeStrings = key;
+            }
+            _keyframeStrings.forEach((keyframeString) => {
+              button.keyframe[keyframeString] = getKeyframeStringValue(
+                keyframeString,
+                pinkTromboneElement
+              );
+            });
+            updateButton(button);
+          }
+        }, 10);
+      };
+      const sortKeyframes = () => {
+        keyframes.sort((a, b) => a.time - b.time);
+      };
+      const deleteSelectedKeyframe = () => {
+        if (selectedButton) {
+          deleteKeyframe(selectedButton.keyframe);
+          silence();
+        }
+      };
+      const deleteKeyframe = (keyframe) => {
+        if (keyframes.includes(keyframe)) {
+          const button = Array.from(timeline.querySelectorAll("button")).find(
+            (button) => button.keyframe === keyframe
+          );
+          if (button) {
+            if (button === selectedButton) {
+              deselectButton();
+            }
+            button.remove();
+          }
+          keyframes.splice(keyframes.indexOf(keyframe), 1);
+        }
+      };
+
+      let pinkTromboneElements = Array.from(
+        document.querySelectorAll("pink-trombone")
+      );
+
+      let envelopes = [];
+      let myConstrictions = [];
+      const getVoicenessFromTenseness = (tenseness) => {
+        return Math.acos(1 - tenseness) / (Math.PI * 0.5);
+      };
+      pinkTromboneElements.forEach((pinkTromboneElement, index) => {
+        pinkTromboneElement._index = index;
+
+        pinkTromboneElement.addEventListener("load", (event) => {
+          pinkTromboneElement
+            .setAudioContext(audioContext)
+            .then((pinkTrombone) => {
+              if (index === 0) {
+                pinkTromboneElement.enableUI();
+                pinkTromboneElement.startUI();
+
+                pinkTromboneElement.addEventListener(
+                  "setParameter",
+                  (event) => {
+                    updateSelectedKeyframe();
+                    const { newValue, parameterName } = event.detail;
+                    const [type, subtype] = parameterName.split(".");
+                    if (type == "tenseness" || type == "loudness") {
+                      if (type === "tenseness") {
+                        const interpolation =
+                          getVoicenessFromTenseness(newValue);
+                        setVoiceness(interpolation);
+                      }
+                      return;
+                    }
+                    updateMenuInput(type, subtype, pinkTromboneElement);
+                  }
+                );
+              }
+
+              const envelope = new Envelope(
+                pinkTromboneElement.pinkTrombone._pinkTromboneNode.intensity,
+                pinkTromboneElement.audioContext
+              );
+              pinkTromboneElement.envelope = envelope;
+              envelopes[index] = envelope;
+
+              pinkTromboneElement.connect(
+                pinkTromboneElement.audioContext.destination
+              );
+              pinkTromboneElement.start();
+              pinkTromboneElement.pinkTrombone._pinkTromboneNode.intensity.value = 0;
+              pinkTromboneElement.pinkTrombone._pinkTromboneNode.vibrato.wobble.value = 0;
+              const myConstriction = pinkTromboneElement.newConstriction(
+                43,
+                1.8
+              );
+              pinkTromboneElement.myConstriction = myConstriction;
+              myConstrictions[index] = myConstriction;
+              pinkTromboneElement.didStart = true;
+              pinkTromboneElement.dispatchEvent(new Event("start"));
+
+              if (index === 0) {
+                updateMenuInputs();
+              }
+            });
+        });
+      });
+
+      const phonemes = {
+        æ: {
+          index: 14.93,
+          diameter: 2.78,
+          isTongue: true,
+          hint: "pAt",
+          key: "a",
+        },
+        ɑ: {
+          index: 12.75,
+          diameter: 2.3,
+          isTongue: true,
+          hint: "pArt",
+        },
+        ɒ: {
+          index: 12,
+          diameter: 2.05,
+          isTongue: true,
+          hint: "pOt",
+        },
+        ɔ: {
+          index: 17.7,
+          diameter: 2.05,
+          isTongue: true,
+          hint: "pOrt",
+        },
+        ɪ: {
+          index: 26.11,
+          diameter: 2.87,
+          isTongue: true,
+          hint: "pIt",
+          key: "i",
+        },
+        i: {
+          index: 27.2,
+          diameter: 2.2,
+          isTongue: true,
+          hint: "pEAt",
+          key: "e",
+        },
+        e: {
+          index: 19.4,
+          diameter: 3.43,
+          isTongue: true,
+          hint: "pEt",
+        },
+        ʌ: {
+          index: 17.8,
+          diameter: 2.46,
+          isTongue: true,
+          hint: "pUt",
+        },
+        u: {
+          index: 22.8,
+          diameter: 2.05,
+          isTongue: true,
+          hint: "pOOt",
+          key: "u",
+        },
+        ə: {
+          index: 20.7,
+          diameter: 2.8,
+          isTongue: true,
+          hint: "pErt",
+        },
+        r: {
+          index: 27.6,
+          diameter: 0.6,
+          hint: "leaRn",
+          key: "r",
+        },
+
+        // FRICATIVES
+        ʒ: {
+          index: 31,
+          diameter: 0.6,
+          voiceless: "ʃ",
+          hint: "pleaSure",
+        },
+        z: {
+          index: 36,
+          diameter: 0.6,
+          voiceless: "s",
+          hint: "Zoo",
+          key: "z",
+        },
+        v: {
+          index: 41,
+          diameter: 0.5,
+          voiceless: "f",
+          hint: "Very",
+          key: "v",
+        },
+
+        // STOPS
+        g: {
+          index: 20,
+          diameter: 0,
+          voiceless: "k",
+          hint: "Go",
+          key: "g",
+        },
+        d: {
+          index: 36,
+          diameter: 0,
+          voiceless: "t",
+          hint: "Den",
+          key: "d",
+        },
+        b: {
+          index: 41,
+          diameter: 0,
+          voiceless: "p",
+          hint: "Bad",
+          key: "b",
+        },
+
+        // NASALS
+        ŋ: {
+          index: 20,
+          diameter: -1,
+          hint: "haNg",
+        },
+        n: {
+          index: 36,
+          diameter: -1,
+          hint: "Not",
+        },
+        m: {
+          index: 41,
+          diameter: -1,
+          hint: "woMan",
+        },
+
+        // ETC
+        w: {
+          index: 41,
+          diameter: 0.7,
+          hint: "Wow",
+        },
+        l: {
+          index: 38,
+          diameter: 1.2,
+          hint: "Like",
+          key: "l",
+        },
+      };
+      const phonemeKeys = {};
+      const phonemesContainer = document.querySelector("#presets .phonemes");
+      const setPhoneme = (phoneme) => {
+        const { index, diameter, isTongue } = phoneme;
+        let type = isTongue ? "tongue" : "myConstriction";
+        setPinkTrombonesValue(type, "index", index);
+        updateMenuInput(type, "index");
+        setPinkTrombonesValue(type, "diameter", diameter);
+        updateMenuInput(type, "diameter");
+
+        if (selectedButton) {
+          selectedButton.keyframe[`${type}.index`] = index;
+          selectedButton.keyframe[`${type}.diameter`] = diameter;
+          updateButton(selectedButton);
+        }
+
+        if (isTongue) {
+          setPinkTrombonesValue(
+            "myConstriction",
+            "diameter",
+            pinkTromboneParameters.myConstriction.diameter.max
+          );
+          updateMenuInput("myConstriction", "diameter");
+
+          selectedButton.keyframe["myConstriction.diameter"] =
+            pinkTromboneParameters.myConstriction.diameter.max;
+        }
+      };
+      for (const symbol in phonemes) {
+        const phoneme = phonemes[symbol];
+        const { key, hint } = phoneme;
+        const button = document.createElement("button");
+        button.innerText = `${symbol} (${hint})${key ? ` [${key}]` : ""}`;
+        button.addEventListener("click", (event) => {
+          setPhoneme(phoneme);
+        });
+        phonemesContainer.appendChild(button);
+        if (key) {
+          phonemeKeys[key] = phoneme;
+          button.title = key;
+        }
+      }
+      const isMac = window.navigator.platform.includes("Mac");
+      document.addEventListener("keydown", (event) => {
+        if (event.target.nodeName === "INPUT") {
+          return;
+        }
+
+        const usedSpecialKey = isMac ? event.metaKey : event.ctrlKey;
+
+        const { key } = event;
+        if (usedSpecialKey) {
+          let cancel = true;
+          switch (key) {
+            case "k":
+              addKeyframe();
+              break;
+            case "Backspace":
+              deleteSelectedString();
+              break;
+            case "p":
+              createNewString();
+              break;
+            case "d":
+              duplicateSelectedString();
+              break;
+            case "c":
+              copySelectedKeyframe();
+              break;
+            case "v":
+              pasteKeyframe();
+              break;
+            case "s":
+              save();
+              break;
+            case "l":
+              load();
+              break;
+            case "e":
+              _export();
+              break;
+            case "ArrowLeft":
+            case "ArrowRight":
+              let newButton;
+              if (selectedButton) {
+                const currentKeyframeIndex = keyframes.indexOf(
+                  selectedButton.keyframe
+                );
+                const offset = key === "ArrowLeft" ? -1 : +1;
+                const newKeyframeIndex = clamp(
+                  currentKeyframeIndex + offset,
+                  0,
+                  keyframes.length - 1
+                );
+                if (newKeyframeIndex !== currentKeyframeIndex) {
+                  newButton = keyframes[newKeyframeIndex].button;
+                  removeMultiButton(newButton);
+                  const currentButton = keyframes[currentKeyframeIndex].button;
+                  selectButton(newButton);
+                  if (event.shiftKey) {
+                    addMultiButton(currentButton);
+                  }
+
+                  timelineSlider.value = newButton.keyframe.time;
+                  timelineSlider.dispatchEvent(new Event("input"));
+                }
+              } else {
+                const { before, after } = getAdjacentKeyframes();
+                if (key === "ArrowLeft" && before) {
+                  newButton = before.button;
+                } else if (key === "ArrowRight" && after) {
+                  newButton = after.button;
+                }
+                if (newButton) {
+                  selectButton(newButton);
+                }
+              }
+              if (newButton) {
+                timelineSlider.value = newButton.keyframe.time;
+                timelineSlider.dispatchEvent(new Event("input"));
+              }
+              break;
+            case "Dead":
+              switch (event.code) {
+                case "KeyI":
+                  cancel = false;
+                  break;
+              }
+              break;
+          }
+          if (cancel) {
+            event.preventDefault();
+            return false;
+          }
+        } else {
+          if (key in phonemeKeys) {
+            const phoneme = phonemeKeys[key];
+            setPhoneme(phoneme);
+          } else if (
+            key == " " &&
+            document.activeElement?.nodeName !== "INPUT"
+          ) {
+            togglePlayback();
+          } else {
+            switch (key) {
+              case "ArrowLeft":
+              case "ArrowRight":
+                let offset = event.shiftKey ? 0.1 : 0.01;
+                offset *= key === "ArrowLeft" ? -1 : 1;
+                const time = clamp(currentTime + offset, 0, totalTime);
+
+                timelineSlider.value = time;
+                timelineSlider.dispatchEvent(new Event("input"));
+
+                if (selectedButton) {
+                  selectedButton.keyframe.time = time;
+                  updateButton(selectedButton);
+                  updateMultiButtons();
+                  sortKeyframes();
+                }
+                break;
+              case "ArrowUp":
+              case "ArrowDown":
+                let scalar = event.shiftKey ? 2 ** (12 / 12) : 2 ** (1 / 12);
+                scalar = key === "ArrowUp" ? scalar : 1 / scalar;
+                let frequency = pinkTromboneElements[0].frequency.value;
+                frequency = clamp(
+                  frequency * scalar,
+                  pinkTromboneParameters.frequency.min,
+                  pinkTromboneParameters.frequency.max
+                );
+
+                setPinkTrombonesValue("frequency", null, frequency);
+                updateMenuInput("frequency");
+                updateSelectedKeyframe("frequency");
+
+                if (selectedButton) {
+                  selectedButton.keyframe.frequency = frequency;
+                  updateButton(selectedButton);
+                  updateMultiButtons();
+                }
+                break;
+              default:
+                break;
+            }
+          }
+        }
+        
+        if (document.activeElement?.nodeName === "BUTTON") {
+          event.preventDefault();
+          return false;
+        }
+      });
+    </script>
+    <script src="script.js"></script>
+    <script>
+      let isFlashing = false;
+      const flash = (message) => {
+        if (isFlashing) {
+          return;
+        }
+        isFlashing = true;
+
+        const originalMessage = document.title;
+        document.title = message;
+        setTimeout(() => {
+          document.title = originalMessage;
+          isFlashing = false;
+        }, 500);
+      };
+      const generateJSON = () => {
+        const json = strings.map((string) => {
+          const { name, keyframes } = string;
+          return {
+            name,
+            keyframes: keyframes.map((keyframe) => {
+              keyframe = { ...keyframe };
+              delete keyframe.button;
+              return keyframe;
+            }),
+          };
+        });
+        return json;
+      };
+      const save = () => {
+        console.log("SAVE");
+        flash("SAVING");
+        const json = generateJSON();
+        const stringifiedStrings = JSON.stringify(json);
+        localStorage.setItem("strings", stringifiedStrings);
+      };
+      const load = () => {
+        loadButton.click();
+      };
+      const onLoadInput = () => {
+        const { files } = loadInput;
+        const jsons = [];
+        const onLoadedJSONS = () => {
+          loadJSON(...jsons);
+        };
+        const readNextFile = (index = 0) => {
+          const file = files[index];
+          if (file) {
+            const fileReader = new FileReader();
+            fileReader.onload = (event) => {
+              jsons[index] = JSON.parse(event.target.result);
+              readNextFile(index + 1);
+            };
+            fileReader.readAsText(file);
+          } else {
+            onLoadedJSONS();
+          }
+        };
+        readNextFile();
+      };
+      const loadJSON = (...jsons) => {
+        jsons.forEach((json) => {
+          json.forEach((string) => {
+            createNewString(string, true);
+            if (string.name === defaultStringName) {
+              const stringToDelete = strings.find(
+                (string) => string.name === defaultStringName
+              );
+              deleteString(stringToDelete);
+            }
+          });
+        });
+        setString(strings[0]);
+      };
+      const _export = () => {
+        const json = generateJSON();
+        var dataString =
+          "data:text/json;charset=utf-8," +
+          encodeURIComponent(JSON.stringify(json));
+        exportLink.setAttribute("href", dataString);
+        exportLink.setAttribute(
+          "download",
+          `timeline-${new Date().toLocaleString()}.json`
+        );
+        exportLink.click();
+      };
+      const localStorageStringsString = localStorage.getItem("strings");
+      if (localStorageStringsString) {
+        const localStorageStrings = JSON.parse(localStorageStringsString);
+        loadJSON(localStorageStrings);
+      }
+      const loadFromJSON = async () => {
+        const response = await fetch("presets.json");
+        const json = await response.json();
+        loadJSON(json);
+      };
+      loadFromJSON();
+    </script>
   </body>
 </html>

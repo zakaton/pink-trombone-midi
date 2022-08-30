@@ -1,6 +1,6 @@
 /* global EventDispatcher, MidiParser, Tone */
 
-class MPKMiniPlay extends EventDispatcher {
+class MPKMini extends EventDispatcher {
   async connect() {
     this.midiAccess = await navigator.requestMIDIAccess();
     this.midiAccess.inputs.forEach((entry) => {
@@ -13,6 +13,7 @@ class MPKMiniPlay extends EventDispatcher {
     const dataView = new DataView(data.buffer);
     const message = { timeStamp };
     let type = this.midimessagetypes[dataView.getUint8(0)];
+    //console.log(type);
     switch (type) {
       case "notedown":
       case "noteup":
@@ -22,16 +23,34 @@ class MPKMiniPlay extends EventDispatcher {
         Object.assign(message, { velocity, frequency });
         break;
       case "padon":
-      case "padchange":
       case "padoff":
         const padIndex = dataView.getUint8(1) - 0x24;
+        if (type === "padon") {
+          if (this._lastPadIndex === undefined) {
+            this._lastPadIndex = padIndex
+          }
+        }
+        else if (type === "padoff") {
+          if (this._lastPadIndex === padIndex) {
+            delete this._lastPadIndex
+          }
+        }
         const pressure = dataView.getUint8(2) / 127;
         Object.assign(message, { pressure });
         type += "-" + (padIndex + 1);
         this.dispatchEvent({
-          type: `pad-${padIndex + 1}`,
-          message: message,
-        });
+          type: `pad-${padIndex+1}`,
+          message
+        })
+        break;
+      case "padchange":
+        const _pressure = dataView.getUint8(1) / 127;
+        Object.assign(message, { pressure: _pressure});
+        type += "-" + (this._lastPadIndex + 1)
+        this.dispatchEvent({
+          type: `pad-${this._lastPadIndex+1}`,
+          message
+        })
         break;
       case "joystickX":
         const x = dataView.getUint16(1, true) / 32639;
@@ -59,7 +78,7 @@ class MPKMiniPlay extends EventDispatcher {
     0x90: "notedown",
     0x80: "noteup",
     0x99: "padon",
-    0xa9: "padchange",
+    0xd9: "padchange",
     0x89: "padoff",
     0xe0: "joystickX",
     0xb0: "joystickYOrKnob",

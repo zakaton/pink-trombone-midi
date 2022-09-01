@@ -87,7 +87,7 @@ midiKeyboard.addEventListener("notedown", (event) => {
   }
 
   let { frequency, velocity } = event.message;
-  velocity = 2 * velocity;
+  velocity = 1.5 * velocity;
   pinkTromboneElement._frequency = frequency;
   const _frequency = frequency.toFrequency();
 
@@ -210,7 +210,7 @@ midiKeyboard.addEventListener("knob-1", (event) => {
     pinkTromboneParameters.tongue.index.max,
     value
   );
-  setPinkTrombonesValue("tongue", "index", newIndex);
+  setPinkTromboneValue("tongue", "index", newIndex);
   updateMenuInput("tongue", "index");
   updateSelectedKeyframe("tongue.index");
 });
@@ -222,7 +222,7 @@ midiKeyboard.addEventListener("knob-2", (event) => {
     pinkTromboneParameters.tongue.diameter.max,
     value
   );
-  setPinkTrombonesValue("tongue", "diameter", newDiameter);
+  setPinkTromboneValue("tongue", "diameter", newDiameter);
   updateMenuInput("tongue", "diameter");
   updateSelectedKeyframe("tongue.diameter");
 });
@@ -234,7 +234,7 @@ midiKeyboard.addEventListener("knob-3", (event) => {
     pinkTromboneParameters.myConstriction.index.max,
     value
   );
-  setPinkTrombonesValue("myConstriction", "index", newIndex);
+  setPinkTromboneValue("myConstriction", "index", newIndex);
   updateMenuInput("myConstriction", "index");
   updateSelectedKeyframe("myConstriction.index");
 });
@@ -246,7 +246,7 @@ midiKeyboard.addEventListener("knob-4", (event) => {
     pinkTromboneParameters.myConstriction.diameter.max,
     value
   );
-  setPinkTrombonesValue("myConstriction", "diameter", newDiameter);
+  setPinkTromboneValue("myConstriction", "diameter", newDiameter);
   updateMenuInput("myConstriction", "diameter");
   updateSelectedKeyframe("myConstriction.diameter");
 });
@@ -254,7 +254,7 @@ midiKeyboard.addEventListener("knob-4", (event) => {
 // INTENSITY CONTROLLER
 midiKeyboard.addEventListener("knob-5", (event) => {
   const { value } = event.message;
-  setPinkTrombonesValue("intensity", null, value);
+  setPinkTromboneValue("intensity", null, value);
   updateMenuInput("intensity");
   updateSelectedKeyframe("intensity");
 });
@@ -266,7 +266,7 @@ midiKeyboard.addEventListener("knob-6", (event) => {
     pinkTromboneParameters.frequency.max,
     value
   );
-  setPinkTrombonesValue("frequency", null, frequency);
+  setPinkTromboneValue("frequency", null, frequency);
   updateMenuInput("frequency");
   updateSelectedKeyframe("frequency");
 

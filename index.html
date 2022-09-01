@@ -1,6 +1,6 @@
 <html>
   <head>
-    <title>Pink Trombone MIDI</title>
+    <title>Pink Trombone Editor</title>
     <link rel="stylesheet" href="https://rsms.me/inter/inter.css" />
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -176,7 +176,6 @@
       </div>
       <div id="pinkTrombones">
         <pink-trombone></pink-trombone>
-        <pink-trombone></pink-trombone>
       </div>
       <div id="presets">
         <div class="phonemes"></div>
@@ -189,8 +188,8 @@
               oninput="setStringName(event.target.value)"
               type="text"
               placeholder="string"
-              size="10"
-              maxlength="10"
+              size="20"
+              maxlength="20"
           /></label>
           <button
             id="createNewStringButton"
@@ -406,7 +405,7 @@
             );
             input.addEventListener("input", (event) => {
               const value = Number(event.target.value);
-              setPinkTrombonesValue(type, subtype, value);
+              setPinkTromboneValue(type, subtype, value);
               if (selectedButton) {
                 selectedButton.keyframe[`${type}.${subtype}`] = value;
                 updateButton(selectedButton);
@@ -425,7 +424,7 @@
             if (type === "voiceness") {
               setVoiceness(value);
             } else {
-              setPinkTrombonesValue(type, null, value);
+              setPinkTromboneValue(type, null, value);
               if (selectedButton) {
                 selectedButton.keyframe[type] = value;
                 updateButton(selectedButton);
@@ -495,7 +494,8 @@
       };
       const setCurrentTime = (
         time,
-        pinkTromboneElement = pinkTromboneElements[0]
+        pinkTromboneElement = pinkTromboneElements[0],
+        isSilent = false
       ) => {
         currentTime = time;
 
@@ -521,7 +521,7 @@
             }
           }
 
-          setPinkTromboneWithKeyframe(keyframeToCopy, pinkTromboneElement);
+          setPinkTromboneWithKeyframe(keyframeToCopy, pinkTromboneElement, isSilent);
         }
       };
       const getInterpolation = (from, to, value) => {
@@ -529,12 +529,17 @@
       };
       const setPinkTromboneWithKeyframe = (
         keyframe,
-        pinkTromboneElement = pinkTromboneElements[0]
+        pinkTromboneElement = pinkTromboneElements[0],
+        isSilent = true
       ) => {
         keyframeStrings.forEach((keyframeString) => {
+          let value = keyframe[keyframeString]
+          if (keyframeString === "intensity" && isSilent) {
+            value = 0
+          }
           setKeyframeStringValue(
             keyframeString,
-            keyframe[keyframeString],
+            value,
             pinkTromboneElement
           );
         });
@@ -632,6 +637,8 @@
         clearTimeout(pinkTromboneElement.envelopeReleaseEndTimeoutId);
 
         cancelKeyframeStrings();
+        
+        pinkTromboneElement._velocity = velocity
 
         envelopeKeyframes = targetKeyframes;
         let netOffset = 0;
@@ -723,6 +730,9 @@
                     rawValue / envelopeKeyframes[0].frequency;
                   rawValue = frequencyRatio * frequency.toFrequency();
                 }
+                if (keyframeString === "intensity") {
+                  rawValue *= pinkTromboneElement._velocity
+                }
 
                 value.linearRampToValueAtTime(
                   rawValue,
@@ -742,8 +752,7 @@
             if (currentEnvelopePinkTromboneElement === pinkTromboneElement) {
               currentEnvelopePinkTromboneElement = null;
             }
-            setCurrentTime(0, pinkTromboneElement);
-            setPinkTromboneValue("intensity", null, 0, pinkTromboneElement);
+            setCurrentTime(0, pinkTromboneElement, true);
           }, netOffset * 1000);
         }, timeUntilAttackEnds * 1000);
       };
@@ -1687,9 +1696,9 @@
       const setPhoneme = (phoneme) => {
         const { index, diameter, isTongue } = phoneme;
         let type = isTongue ? "tongue" : "myConstriction";
-        setPinkTrombonesValue(type, "index", index);
+        setPinkTromboneValue(type, "index", index);
         updateMenuInput(type, "index");
-        setPinkTrombonesValue(type, "diameter", diameter);
+        setPinkTromboneValue(type, "diameter", diameter);
         updateMenuInput(type, "diameter");
 
         if (selectedButton) {
@@ -1699,7 +1708,7 @@
         }
 
         if (isTongue) {
-          setPinkTrombonesValue(
+          setPinkTromboneValue(
             "myConstriction",
             "diameter",
             pinkTromboneParameters.myConstriction.diameter.max
@@ -1854,7 +1863,7 @@
                   pinkTromboneParameters.frequency.max
                 );
 
-                setPinkTrombonesValue("frequency", null, frequency);
+                setPinkTromboneValue("frequency", null, frequency);
                 updateMenuInput("frequency");
                 updateSelectedKeyframe("frequency");
 

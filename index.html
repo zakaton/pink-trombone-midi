@@ -176,6 +176,8 @@
       </div>
       <div id="pinkTrombones">
         <pink-trombone></pink-trombone>
+        <pink-trombone></pink-trombone>
+        <pink-trombone></pink-trombone>
       </div>
       <div id="presets">
         <div class="phonemes"></div>
@@ -1719,16 +1721,22 @@
             pinkTromboneParameters.myConstriction.diameter.max;
         }
       };
+      let usePhonemeHotKeys = false;
       for (const symbol in phonemes) {
         const phoneme = phonemes[symbol];
         const { key, hint } = phoneme;
         const button = document.createElement("button");
-        button.innerText = `${symbol} (${hint})${key ? ` [${key}]` : ""}`;
+        let buttonInnerText = `${symbol} (${hint})`;
+        if (usePhonemeHotKeys) {
+          buttonInnerText += `${key ? ` [${key}]` : ""}`
+        }
+        button.innerText = buttonInnerText
+        
         button.addEventListener("click", (event) => {
           setPhoneme(phoneme);
         });
         phonemesContainer.appendChild(button);
-        if (key) {
+        if (usePhonemeHotKeys && key) {
           phonemeKeys[key] = phoneme;
           button.title = key;
         }
@@ -1826,7 +1834,7 @@
             return false;
           }
         } else {
-          if (key in phonemeKeys) {
+          if (usePhonemeHotKeys && key in phonemeKeys) {
             const phoneme = phonemeKeys[key];
             setPhoneme(phoneme);
           } else if (
@@ -1990,7 +1998,7 @@
         loadJSON(localStorageStrings);
       }
       const loadFromJSON = async () => {
-        const response = await fetch("presets.json");
+        const response = await fetch("strings.json");
         const json = await response.json();
         loadJSON(json);
       };

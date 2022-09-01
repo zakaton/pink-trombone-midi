@@ -1999,7 +1999,8 @@
       }
       const loadFromJSON = async () => {
         const response = await fetch("strings.json");
-        const json = await response.json();
+        let json = await response.json();
+        json = json.filter(string => strings.every(_string => _string.name !== string.name))
         loadJSON(json);
       };
       loadFromJSON();

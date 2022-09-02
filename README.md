@@ -2,6 +2,8 @@
 
 _A simple timeline editor for Neil Thapen's [Pink Trombone](https://dood.al/pinktrombone/)_
 
+__(Note: when I say "ctrl", I mean the ctrl key for Windows, and the command key for Mac)__
+
 ## Table of Contents
 
 🎛 Controlling the Pink Trombone  
@@ -24,7 +26,11 @@ In the top right are some "phoneme presets" (starting with **[æ (pAt)]** and en
 
 ### ▶️ Timeline and Playback
 
-You can place keyframes on the timeline, with the y-axis representing pitch. When a keyframe is selected, you can manipulate the Pink Trombone to update the keyframe. You can also click+drag to move it around the timeline. You can select multiple keyframes by holding shift or ctrl when clicking other keyframes. You can also use the arrow keys to move the selected keys around the timeline, and even copy+paste keyframes.
+You can place keyframes on the timeline, with the y-axis representing pitch. When a keyframe is selected, you can manipulate the Pink Trombone to update the keyframe. You can also click+drag to move it around the timeline. You can select multiple keyframes by holding shift or ctrl when clicking other keyframes.
+
+You can also use the arrow keys to move the selected keys around the timeline, and even copy+paste keyframes. The Up/Down arrow keys move the selected keyframes a single semitone, and holding the shift key moves them a whole octave. the Left/Right arrow keys move them 0.01 seconds, and holding the shift key moves the 0.1 seconds.
+
+You can select keyframes from the keyboard by holding ctrl+left/right, selectig the closest keyframe to the current time on the timeline, and moving to the adjacent keys by pressing the left/right keys again (while holding the ctrl key). Holding the shift+ctrl keys selects multiple keys as you move left/right.
 
 You can use the Space Bar to toggle Playback.
 

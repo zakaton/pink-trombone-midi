@@ -1,1 +1,2 @@
-README.md
+pitch detector for using own voice
+record own voice pitch/loudness and draw a canvas curve for reference to match pitch/loudness

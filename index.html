@@ -526,7 +526,11 @@
             }
           }
 
-          setPinkTromboneWithKeyframe(keyframeToCopy, pinkTromboneElement, isSilent);
+          setPinkTromboneWithKeyframe(
+            keyframeToCopy,
+            pinkTromboneElement,
+            isSilent
+          );
         }
       };
       const getInterpolation = (from, to, value) => {
@@ -538,15 +542,11 @@
         isSilent = true
       ) => {
         keyframeStrings.forEach((keyframeString) => {
-          let value = keyframe[keyframeString]
+          let value = keyframe[keyframeString];
           if (keyframeString === "intensity" && isSilent) {
-            value = 0
+            value = 0;
           }
-          setKeyframeStringValue(
-            keyframeString,
-            value,
-            pinkTromboneElement
-          );
+          setKeyframeStringValue(keyframeString, value, pinkTromboneElement);
         });
         setTimeout(() => {
           updateMenuInputs();
@@ -642,8 +642,8 @@
         clearTimeout(pinkTromboneElement.envelopeReleaseEndTimeoutId);
 
         cancelKeyframeStrings();
-        
-        pinkTromboneElement._velocity = velocity
+
+        pinkTromboneElement._velocity = velocity;
 
         envelopeKeyframes = targetKeyframes;
         let netOffset = 0;
@@ -736,7 +736,7 @@
                   rawValue = frequencyRatio * frequency.toFrequency();
                 }
                 if (keyframeString === "intensity") {
-                  rawValue *= pinkTromboneElement._velocity
+                  rawValue *= pinkTromboneElement._velocity;
                 }
 
                 value.linearRampToValueAtTime(
@@ -1502,6 +1502,45 @@
                 pinkTromboneElement.startUI();
 
                 pinkTromboneElement.addEventListener(
+                  "setConstriction",
+                  (event) => {
+                    const constrictionIndex = Number(
+                      event.detail.constrictionIndex
+                    );
+
+                    if (constrictionIndex !== 0) {
+                      const { index, diameter } = event.detail;
+
+                      const constriction = pinkTromboneElement.constrictions[0];
+
+                      const indexValue = index || constriction.index.value;
+                      const diameterValue =
+                        diameter || constriction.diameter.value;
+
+                      switch (event.detail.type) {
+                        case "linear":
+                          constriction.index.linearRampToValueAtTime(
+                            indexValue,
+                            event.detail.endTime
+                          );
+                          constriction.diameter.linearRampToValueAtTime(
+                            diameterValue,
+                            event.detail.endTime
+                          );
+                          break;
+                        default:
+                          constriction.index.value = indexValue;
+                          constriction.diameter.value = diameterValue;
+                      }
+
+                      event.target.dispatchEvent(
+                        new CustomEvent("didSetConstriction")
+                      );
+                    }
+                  }
+                );
+
+                pinkTromboneElement.addEventListener(
                   "setParameter",
                   (event) => {
                     updateSelectedKeyframe();
@@ -1731,10 +1770,10 @@
         const button = document.createElement("button");
         let buttonInnerText = `${symbol} (${hint})`;
         if (usePhonemeHotKeys) {
-          buttonInnerText += `${key ? ` [${key}]` : ""}`
+          buttonInnerText += `${key ? ` [${key}]` : ""}`;
         }
-        button.innerText = buttonInnerText
-        
+        button.innerText = buttonInnerText;
+
         button.addEventListener("click", (event) => {
           setPhoneme(phoneme);
         });
@@ -2003,7 +2042,9 @@
       const loadFromJSON = async () => {
         const response = await fetch("strings.json");
         let json = await response.json();
-        json = json.filter(string => strings.every(_string => _string.name !== string.name))
+        json = json.filter((string) =>
+          strings.every((_string) => _string.name !== string.name)
+        );
         loadJSON(json);
       };
       loadFromJSON();

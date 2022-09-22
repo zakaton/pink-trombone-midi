@@ -61,7 +61,7 @@
     }
     #timeline {
       grid-area: timeline;
-      position: relative;
+      position: sticky;
 
       background-color: #f7f7f7;
     }
@@ -81,8 +81,16 @@
     #timeline > button.sustain {
       border-radius: 0.5rem;
     }
+    #timeline > canvas {
+      width: 100%;
+      height: 100%;
+      position: absolute;
+    }
     #timelineSlider {
       grid-area: timelineSlider;
+    }
+    #selectMicrophoneSelect {
+      width: 50px;
     }
   </style>
 
@@ -251,7 +259,7 @@
           / <span id="totalTimeSpan"></span
         ></label>
         <button id="addKeyframeButton" onclick="addKeyframe()" title="ctrl+k">
-          add keyframe
+          add key
         </button>
         <button
           id="updateSelectedKeyframeButton"
@@ -262,7 +270,7 @@
           update keyframe
         </button>
         <label
-          >keyframe name
+          >key name
           <input
             disabled
             id="keyframeNameInput"
@@ -279,7 +287,7 @@
           disabled
           title="Backspace"
         >
-          delete keyframe
+          delete key
         </button>
         <button
           id="copySelectedKeyframeButton"
@@ -287,7 +295,7 @@
           disabled
           title="ctrl+c"
         >
-          copy keyframe
+          copy key
         </button>
         <button
           id="pasteKeyframeButton"
@@ -295,11 +303,11 @@
           disabled
           title="ctrl+v"
         >
-          paste keyframe
+          paste key
         </button>
 
         <label
-          >is sustain?
+          >sustain?
           <input
             type="checkbox"
             id="isSelectedKeyframeSustainButton"
@@ -320,7 +328,7 @@
             oninput="setDefaultEnvelopeSpeed(Number(event.target.value))"
         /></label>
 
-        <label
+        <label hidden
           >pitch
           <input
             type="checkbox"
@@ -328,8 +336,37 @@
             oninput="toggleEnvelopePitch()"
             checked
         /></label>
+
+        <select id="selectMicrophoneSelect">
+          <optgroup
+            label="select microphone"
+            id="selectMicrophoneOptgroup"
+          ></optgroup>
+        </select>
+
+        <button id="togglePitchDetectorButton" onclick="togglePitchDetector()">
+          🎤🎵❌
+        </button>
+        <button
+          id="toggleVolumeDetectorButton"
+          onclick="toggleVolumeDetector()"
+        >
+          🎤🔈❌
+        </button>
+        <button
+          id="toggleMicrophoneRecordingButton"
+          onclick="toggleMicrophoneRecording()"
+        >
+          ⚪️
+        </button>
+        <label
+          >auto-key?
+          <input type="checkbox" id="setMicrophoneAutoKeyInput" checked
+        /></label>
       </div>
-      <div id="timeline"></div>
+      <div id="timeline">
+        <canvas width="1440" height="300"></canvas>
+      </div>
       <input
         id="timelineSlider"
         type="range"
@@ -1155,7 +1192,10 @@
         }
       });
       timeline.addEventListener("mousedown", (event) => {
-        if (event.target === timeline && event.target != selectedButton) {
+        if (
+          (event.target === timeline || event.target.nodeName === "CANVAS") &&
+          event.target != selectedButton
+        ) {
           deselectButton();
           clearMultiButtons();
         }
@@ -1822,6 +1862,12 @@
             case "e":
               _export();
               break;
+            case "a":
+              selectButton(keyframes[0].button);
+              keyframes
+                .slice(1)
+                .forEach((keyframe) => addMultiButton(keyframe.button));
+              break;
             case "ArrowLeft":
             case "ArrowRight":
               let newButton;
@@ -1886,6 +1932,18 @@
             togglePlayback();
           } else {
             switch (key) {
+              case "s":
+                console.log("snap to curve");
+                if (selectedButton) {
+                  snapButtonToCurve(selectedButton);
+                }
+                if (multiButtons.length) {
+                  multiButtons.forEach((multiButton) =>
+                    snapButtonToCurve(multiButton)
+                  );
+                  updateMultiButtonPositions();
+                }
+                break;
               case "ArrowLeft":
               case "ArrowRight":
                 let offset = event.shiftKey ? 0.1 : 0.01;
@@ -2048,6 +2106,374 @@
         loadJSON(json);
       };
       loadFromJSON();
+    </script>
+
+    <script type="module">
+      // https://github.com/ianprime0509/pitchy
+      // https://ianjohnson.dev/pitchy/
+      import { PitchDetector } from "https://esm.sh/pitchy@4";
+
+      const selectMicrophoneSelect = document.querySelector(
+        "#selectMicrophoneSelect"
+      );
+      const selectMicrophoneOptgroup = document.querySelector(
+        "#selectMicrophoneOptgroup"
+      );
+      let selectedDeviceId;
+      selectMicrophoneSelect.addEventListener("input", (event) => {
+        selectedDeviceId = event.target.value;
+        window.enableMicrophone(true);
+      });
+      const populateMicrophoneSelect = async () => {
+        const allDevices = await navigator.mediaDevices.enumerateDevices();
+        const audioInputDevices = allDevices.filter(
+          (device) => device.kind === "audioinput"
+        );
+        selectMicrophoneOptgroup.innerHTML = "";
+        audioInputDevices.forEach((device) => {
+          const option = new Option(device.label, device.deviceId);
+          selectMicrophoneOptgroup.appendChild(option);
+        });
+      };
+      navigator.mediaDevices.addEventListener("devicechange", () =>
+        populateMicrophoneSelect()
+      );
+      populateMicrophoneSelect();
+
+      let pitchDetectorDelay = 20;
+      let isPitchDetectorEnabled = false;
+      const toggleMicrophoneButton = document.querySelector(
+        "#toggleMicrophoneButton"
+      );
+      const setPitchDetectorEnabled = async (enabled) => {
+        isPitchDetectorEnabled = enabled;
+        if (isPitchDetectorEnabled) {
+          await enableMicrophone();
+          updatePitch();
+        } else {
+          if (!isVolumeDetectorEnabled) {
+            await disableMicrophone();
+          }
+        }
+        togglePitchDetectorButton.innerText = isPitchDetectorEnabled
+          ? "🎤🎵"
+          : "🎤🎵❌";
+      };
+      let clarityThreshold = 0.9;
+      let pitchThreshold = 80;
+      const analyserNode = audioContext.createAnalyser();
+      const updatePitch = () => {
+        analyserNode.getFloatTimeDomainData(input);
+        const [pitch, clarity] = detector.findPitch(
+          input,
+          audioContext.sampleRate
+        );
+        if (clarity > clarityThreshold && pitch >= pitchThreshold) {
+          setPinkTromboneValue("frequency", null, pitch);
+          updateMenuInput("frequency");
+
+          microphoneRecording.pitch.push({
+            time: getRecording(),
+            value: pitch,
+          });
+
+          if (autoKeyMicrophone && selectedButton) {
+            selectedButton.keyframe.frequency = pitch;
+            updateButton(selectedButton);
+            updateMultiButtons();
+          }
+        }
+
+        if (isPitchDetectorEnabled) {
+          window.setTimeout(() => updatePitch(), pitchDetectorDelay);
+        }
+      };
+
+      let isVolumeDetectorEnabled = false;
+      const setVolumeDetectorEnabled = async (enabled) => {
+        isVolumeDetectorEnabled = enabled;
+        if (isVolumeDetectorEnabled) {
+          await enableMicrophone();
+          updateVolume();
+        } else {
+          if (!isPitchDetectorEnabled) {
+            await disableMicrophone();
+          }
+        }
+        toggleVolumeDetectorButton.innerText = isVolumeDetectorEnabled
+          ? "🎤🔈"
+          : "🎤🔈❌";
+      };
+
+      let volumeThreshold = 1;
+      let volumeDetectorDelay = 10;
+      const updateVolume = () => {
+        analyserNode.getByteFrequencyData(volumeDataArray);
+
+        let sum = 0;
+        for (const amplitude of volumeDataArray) {
+          sum += amplitude * amplitude;
+        }
+
+        let volume = Math.sqrt(sum / volumeDataArray.length);
+        volume = getInterpolation(20, 100, volume);
+        volume = clamp(volume, 0, 1);
+        if (true || volume > 0) {
+          setPinkTromboneValue("intensity", null, volume);
+          updateMenuInput("intensity");
+
+          microphoneRecording.volume.push({
+            time: getRecording(),
+            value: volume,
+          });
+
+          if (autoKeyMicrophone && selectedButton) {
+            selectedButton.keyframe.intensity = volume;
+            updateButton(selectedButton);
+            //updateMultiButtons();
+          }
+        }
+
+        if (isVolumeDetectorEnabled) {
+          window.setTimeout(() => updateVolume(), volumeDetectorDelay);
+        }
+      };
+      let detector, input, stream, volumeDataArray;
+      window.enableMicrophone = async (override) => {
+        if (stream) {
+          if (override) {
+            await window.disableMicrophone(true);
+          } else {
+            return;
+          }
+        }
+
+        stream = await navigator.mediaDevices.getUserMedia({
+          audio: selectedDeviceId ? { deviceId: selectedDeviceId } : true,
+        });
+        console.log("enable microphone", stream);
+
+        audioContext.createMediaStreamSource(stream).connect(analyserNode);
+
+        detector =
+          detector || PitchDetector.forFloat32Array(analyserNode.fftSize);
+        input = input || new Float32Array(detector.inputLength);
+        volumeDataArray =
+          volumeDataArray || new Uint8Array(analyserNode.frequencyBinCount);
+      };
+      window.disableMicrophone = async (enabled) => {
+        if (!stream) {
+          return;
+        }
+        console.log("disable microphone", stream);
+        stream.getAudioTracks().forEach((audioTrack) => audioTrack.stop());
+        stream = null;
+        if (!enabled) {
+          await setPitchDetectorEnabled(false);
+          await setVolumeDetectorEnabled(false);
+        }
+      };
+
+      window.togglePitchDetector = () =>
+        setPitchDetectorEnabled(!isPitchDetectorEnabled);
+      window.toggleVolumeDetector = () =>
+        setVolumeDetectorEnabled(!isVolumeDetectorEnabled);
+
+      const timelineCanvas = document.querySelector("#timeline canvas");
+      const timelineCanvasContext = timelineCanvas.getContext("2d");
+
+      let microphoneRecording = { pitch: [], volume: [] };
+      const getRecording = () => {
+        return (Date.now() - startRecordingTime) / 1000;
+      };
+
+      let startRecordingTime;
+      const recordMicrophoneCallback = () => {
+        const currentTime = Math.min(
+          totalTime,
+          (Date.now() - startRecordingTime) / 1000
+        );
+
+        timelineSlider.value = currentTime;
+
+        if (isRecordingMicrophone && currentTime < totalTime) {
+          drawCanvas();
+          requestAnimationFrame(() => recordMicrophoneCallback());
+        } else {
+          console.log(microphoneRecording);
+          setRecordingMicrophoneEnabled(false);
+        }
+      };
+
+      const clearRecording = () => {
+        console.log("clearing recording");
+        microphoneRecording.pitch.length = 0;
+        microphoneRecording.volume.length = 0;
+        clearCanvas();
+      };
+      const clearCanvas = () => {
+        timelineCanvasContext.clearRect(
+          0,
+          0,
+          timelineCanvas.width,
+          timelineCanvas.height
+        );
+      };
+      const getAdjacents = (time, array) => {
+        let before, after;
+        array.some((value) => {
+          if (value.time < time) {
+            before = value;
+          } else if (value.time > time) {
+            after = value;
+          }
+          return after;
+        });
+        return { before, after };
+      };
+      const getInterpolationAtTime = (time, array) => {
+        const { before, after } = getAdjacents(time, array);
+        let value = 0;
+        if (before || after) {
+          if (before && after) {
+            if (before == after) {
+              value = before.value;
+            } else {
+              const timeInterpolation = getInterpolation(
+                before.time,
+                after.time,
+                time
+              );
+              value = interpolate(before.value, after.value, timeInterpolation);
+            }
+          } else {
+            if (before) {
+              value = before.value;
+            } else {
+              value = after.value;
+            }
+          }
+        }
+        return value;
+      };
+      const getAdjacentVolumes = (time) => {
+        return getAdjacents(time, microphoneRecording.volume);
+      };
+
+      const getVolumeAtTime = (time) => {
+        return getInterpolationAtTime(time, microphoneRecording.volume);
+      };
+      const getPitchAtTime = (time) => {
+        return getInterpolationAtTime(time, microphoneRecording.pitch);
+      };
+
+      const drawCanvas = () => {
+        clearCanvas();
+
+        const canvas = timelineCanvas;
+        const ctx = timelineCanvasContext;
+
+        let previousX, previousY;
+        if (microphoneRecording.volume.length > 0) {
+          microphoneRecording.pitch.forEach(({ time, value: pitch }, index) => {
+            const xInterpolation = time / totalTime;
+            const { min, max } = pinkTromboneParameters.frequency;
+            const yInterpolation = getInterpolation(
+              Math.log(min),
+              Math.log(max),
+              Math.log(pitch)
+            );
+
+            const x = xInterpolation * canvas.width;
+            const y = (1 - yInterpolation) * canvas.height;
+
+            let lineWidth = 1;
+            let volume = getVolumeAtTime(time);
+
+            if (index == 0) {
+              ctx.moveTo(x, y);
+            } else {
+              ctx.beginPath();
+              ctx.strokeStyle = "#BAFAC9";
+              ctx.lineWidth = volume * 20;
+              //ctx.globalAlpha = 0.5;
+              ctx.moveTo(previousX, previousY);
+              ctx.lineTo(x, y);
+              ctx.stroke();
+            }
+
+            previousX = x;
+            previousY = y;
+          });
+        }
+
+        ctx.beginPath();
+        ctx.strokeStyle = "red";
+        ctx.lineWidth = 2;
+        ctx.globalAlpha = 1;
+        microphoneRecording.pitch.forEach(({ time, value: pitch }, index) => {
+          const xInterpolation = time / totalTime;
+          const { min, max } = pinkTromboneParameters.frequency;
+          const yInterpolation = getInterpolation(
+            Math.log(min),
+            Math.log(max),
+            Math.log(pitch)
+          );
+
+          const x = xInterpolation * canvas.width;
+          const y = (1 - yInterpolation) * canvas.height;
+
+          if (index == 0) {
+            ctx.moveTo(x, y);
+          } else {
+            ctx.lineTo(x, y);
+          }
+        });
+        ctx.stroke();
+      };
+
+      const toggleMicrophoneRecordingButton = document.querySelector(
+        "#toggleMicrophoneRecordingButton"
+      );
+      let isRecordingMicrophone = false;
+      const setRecordingMicrophoneEnabled = (enabled) => {
+        if (enabled && (!stream || !isPitchDetectorEnabled)) {
+          return;
+        }
+        isRecordingMicrophone = enabled;
+        if (isRecordingMicrophone) {
+          clearRecording();
+          startRecordingTime = Date.now();
+          recordMicrophoneCallback();
+        } else {
+        }
+        toggleMicrophoneRecordingButton.innerText = isRecordingMicrophone
+          ? "🔴"
+          : "⚪️";
+      };
+      window.toggleMicrophoneRecording = () => {
+        setRecordingMicrophoneEnabled(!isRecordingMicrophone);
+      };
+
+      window.snapButtonToCurve = (button) => {
+        const pitch = getPitchAtTime(button.keyframe.time);
+        button.keyframe.frequency = pitch;
+        
+        if (microphoneRecording.volume.length > 0) {
+          const volume = getVolumeAtTime(button.keyframe.time);
+          button.keyframe.intensity = volume;
+        }
+        updateButton(button);
+      };
+
+      let autoKeyMicrophone = true;
+      const setMicrophoneAutoKeyInput = document.querySelector(
+        "#setMicrophoneAutoKeyInput"
+      );
+      setMicrophoneAutoKeyInput.addEventListener("input", (event) => {
+        autoKeyMicrophone = event.target.checked;
+        console.log(autoKeyMicrophone);
+      });
     </script>
   </body>
 </html>

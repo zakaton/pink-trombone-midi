@@ -112,7 +112,7 @@
         <button onclick="_export()" title="ctrl+e">export</button>
         <a id="exportLink" hidden></a>
         <label
-          > 👅 index
+          > 👅 i
           <input
             id="tongueIndexInput"
             class="tongue index"
@@ -120,7 +120,7 @@
             step="0.1"
         /></label>
         <label
-          >👅 diameter
+          >👅 d
           <input
             id="tongueDiameterInput"
             class="tongue diameter"
@@ -128,18 +128,34 @@
             step="0.1"
         /></label>
         <label
-          >constriction index
+          >front i
           <input
-            id="myConstrictionIndexInput"
-            class="myConstriction index"
+            id="frontConstrictionIndexInput"
+            class="frontConstriction index"
             type="number"
             step="0.1"
         /></label>
         <label
-          >constriction diameter
+          >front d
           <input
-            id="myConstrictionDiameterInput"
-            class="myConstriction diameter"
+            id="frontConstrictionDiameterInput"
+            class="frontConstriction diameter"
+            type="number"
+            step="0.1"
+        /></label>
+        <label
+          >back i
+          <input
+            id="backConstrictionIndexInput"
+            class="backConstriction index"
+            type="number"
+            step="0.1"
+        /></label>
+        <label
+          >back d
+          <input
+            id="backConstrictionDiameterInput"
+            class="backConstriction diameter"
             type="number"
             step="0.1"
         /></label>
@@ -395,8 +411,12 @@
           index: { min: 11, max: 30, toFixed: 1 },
           diameter: { min: 2, max: 3.6, toFixed: 1 },
         },
-        myConstriction: {
-          index: { min: 10.8, max: 43.7, toFixed: 1 },
+        frontConstriction: {
+          index: { min: 28, max: 43.7, toFixed: 1 },
+          diameter: { min: -1.2, max: 5, toFixed: 1 },
+        },
+        backConstriction: {
+          index: { min: 10.8, max: 28, toFixed: 1 },
           diameter: { min: -1.2, max: 5, toFixed: 1 },
         },
 
@@ -583,7 +603,12 @@
           if (keyframeString === "intensity" && isSilent) {
             value = 0;
           }
-          setKeyframeStringValue(keyframeString, value, pinkTromboneElement);
+          if (value == 0) {
+            value = 0.000001;
+          }
+          if (value != undefined) {
+            setKeyframeStringValue(keyframeString, value, pinkTromboneElement);
+          }
         });
         setTimeout(() => {
           updateMenuInputs();
@@ -647,10 +672,12 @@
                 value = value[path.shift()];
               }
               const offset = keyframe.time - currentTime;
-              value.linearRampToValueAtTime(
-                keyframe[keyframeString],
-                pinkTromboneElement.audioContext.currentTime + offset
-              );
+              if (keyframe[keyframeString] != undefined) {
+                value.linearRampToValueAtTime(
+                  keyframe[keyframeString],
+                  pinkTromboneElement.audioContext.currentTime + offset
+                );
+              }
             });
           });
       };
@@ -1115,8 +1142,10 @@
         "tongue.index",
         "tongue.diameter",
 
-        "myConstriction.index",
-        "myConstriction.diameter",
+        "frontConstriction.index",
+        "frontConstriction.diameter",
+        "backConstriction.index",
+        "backConstriction.diameter",
 
         "tenseness",
         "loudness",
@@ -1145,7 +1174,9 @@
         while (path.length) {
           value = value[path.shift()];
         }
-        value.value = newValue;
+        if (newValue != undefined) {
+          value.value = newValue;
+        }
       };
       let selectedButton;
       let draggingButton;
@@ -1612,12 +1643,13 @@
               pinkTromboneElement.start();
               pinkTromboneElement.pinkTrombone._pinkTromboneNode.intensity.value = 0;
               pinkTromboneElement.pinkTrombone._pinkTromboneNode.vibrato.wobble.value = 0;
-              const myConstriction = pinkTromboneElement.newConstriction(
-                43,
-                1.8
-              );
-              pinkTromboneElement.myConstriction = myConstriction;
-              myConstrictions[index] = myConstriction;
+              let frontConstriction, backConstriction;
+              frontConstriction = pinkTromboneElement.newConstriction(43, 1.8);
+              pinkTromboneElement.frontConstriction = frontConstriction;
+              frontConstriction._isEnabled = true;
+              backConstriction = pinkTromboneElement.newConstriction(10.5, 1.8);
+              pinkTromboneElement.backConstriction = backConstriction;
+              myConstrictions[index] = { frontConstriction, backConstriction };
               pinkTromboneElement.didStart = true;
               pinkTromboneElement.dispatchEvent(new Event("start"));
 
@@ -1779,7 +1811,8 @@
       const phonemesContainer = document.querySelector("#presets .phonemes");
       const setPhoneme = (phoneme) => {
         const { index, diameter, isTongue } = phoneme;
-        let type = isTongue ? "tongue" : "myConstriction";
+
+        let type = isTongue ? "tongue" : "frontConstriction";
         setPinkTromboneValue(type, "index", index);
         updateMenuInput(type, "index");
         setPinkTromboneValue(type, "diameter", diameter);
@@ -1793,14 +1826,16 @@
 
         if (isTongue) {
           setPinkTromboneValue(
-            "myConstriction",
+            "frontConstriction",
             "diameter",
-            pinkTromboneParameters.myConstriction.diameter.max
+            pinkTromboneParameters.frontConstriction.diameter.max
           );
-          updateMenuInput("myConstriction", "diameter");
+          updateMenuInput("frontConstriction", "diameter");
 
-          selectedButton.keyframe["myConstriction.diameter"] =
-            pinkTromboneParameters.myConstriction.diameter.max;
+          if (selectedButton) {
+            selectedButton.keyframe["frontConstriction.diameter"] =
+              pinkTromboneParameters.frontConstriction.diameter.max;
+          }
         }
       };
       let usePhonemeHotKeys = false;
@@ -2458,7 +2493,7 @@
       window.snapButtonToCurve = (button) => {
         const pitch = getPitchAtTime(button.keyframe.time);
         button.keyframe.frequency = pitch;
-        
+
         if (microphoneRecording.volume.length > 0) {
           const volume = getVolumeAtTime(button.keyframe.time);
           button.keyframe.intensity = volume;

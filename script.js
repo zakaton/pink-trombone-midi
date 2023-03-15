@@ -1,4 +1,4 @@
-/* global MPKMini, pinkTromboneElements, envelopes, myConstrictions, pinkTromboneParameters, setPinkTrombonesValue, setPinkTromboneValue, updateMenuInputs, updateMenuInput, updateSelectedKeyframe, selectedButton, togglePlayback, stop, copySelectedKeyframe, pasteKeyframe, deleteSelectedKeyframe, addKeyframe, toggleLoop, defaultEnvelopeSpeed, toggleSelectedKeyframeSustain, keyframes, triggerAttack, triggerRelease, multiButtons, updateButton, deselectButton, clearMultiButtons, getAdjacentKeyframes, selectButton, silence, includeButtonsUpToThisButton, updateMultiButtonPositions, totalTime, updateMultiButtons, sortKeyframes, enableEnvelopePitchBending, setMultiButtons */
+/* global MPKMini, pinkTromboneElements, envelopes, myConstrictions, frontConstriction, backConstriction, pinkTromboneParameters, setPinkTrombonesValue, setPinkTromboneValue, updateMenuInputs, updateMenuInput, updateSelectedKeyframe, selectedButton, togglePlayback, stop, copySelectedKeyframe, pasteKeyframe, deleteSelectedKeyframe, addKeyframe, toggleLoop, defaultEnvelopeSpeed, toggleSelectedKeyframeSustain, keyframes, triggerAttack, triggerRelease, multiButtons, updateButton, deselectButton, clearMultiButtons, getAdjacentKeyframes, selectButton, silence, includeButtonsUpToThisButton, updateMultiButtonPositions, totalTime, updateMultiButtons, sortKeyframes, enableEnvelopePitchBending, setMultiButtons */
 
 const interpolate = (from, to, interpolation) => {
   return from + interpolation * (to - from);
@@ -230,25 +230,25 @@ midiKeyboard.addEventListener("knob-2", (event) => {
 midiKeyboard.addEventListener("knob-3", (event) => {
   const { value } = event.message;
   const newIndex = interpolate(
-    pinkTromboneParameters.myConstriction.index.min,
-    pinkTromboneParameters.myConstriction.index.max,
+    pinkTromboneParameters.frontConstriction.index.min,
+    pinkTromboneParameters.frontConstriction.index.max,
     value
   );
-  setPinkTromboneValue("myConstriction", "index", newIndex);
-  updateMenuInput("myConstriction", "index");
-  updateSelectedKeyframe("myConstriction.index");
+  setPinkTromboneValue("frontConstriction", "index", newIndex);
+  updateMenuInput("frontConstriction", "index");
+  updateSelectedKeyframe("frontConstriction.index");
 });
 midiKeyboard.addEventListener("knob-4", (event) => {
   let { value } = event.message;
   value = 1 - value;
   const newDiameter = interpolate(
-    pinkTromboneParameters.myConstriction.diameter.min,
-    pinkTromboneParameters.myConstriction.diameter.max,
+    pinkTromboneParameters.frontConstriction.diameter.min,
+    pinkTromboneParameters.frontConstriction.diameter.max,
     value
   );
-  setPinkTromboneValue("myConstriction", "diameter", newDiameter);
-  updateMenuInput("myConstriction", "diameter");
-  updateSelectedKeyframe("myConstriction.diameter");
+  setPinkTromboneValue("frontConstriction", "diameter", newDiameter);
+  updateMenuInput("frontConstriction", "diameter");
+  updateSelectedKeyframe("frontConstriction.diameter");
 });
 
 // INTENSITY CONTROLLER

@@ -1579,10 +1579,11 @@
                       event.detail.constrictionIndex
                     );
 
-                    if (constrictionIndex !== 0) {
+                    if (constrictionIndex > 1) {
                       const { index, diameter } = event.detail;
 
-                      const constriction = pinkTromboneElement.constrictions[0];
+                      const constriction =
+                        index > 28 ? frontConstriction : backConstriction;
 
                       const indexValue = index || constriction.index.value;
                       const diameterValue =

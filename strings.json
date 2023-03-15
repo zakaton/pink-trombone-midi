@@ -1230,5 +1230,82 @@
         "intensity": 0
       }
     ]
+  },
+  {
+    "name": "pleasure",
+    "keyframes": [
+      {
+        "time": 0,
+        "name": "p",
+        "frequency": 156.8715057373047,
+        "tongue.index": 12.899999618530273,
+        "tongue.diameter": 2.430000066757202,
+        "myConstriction.index": 40.881263732910156,
+        "myConstriction.diameter": -0.422436386346817,
+        "tenseness": 0.5045413374900818,
+        "loudness": 0.8427993655204773,
+        "intensity": 0
+      },
+      {
+        "time": 0.08958333333333333,
+        "name": "l",
+        "frequency": 190.45954805788224,
+        "tongue.index": 16.921409606933594,
+        "tongue.diameter": 1.9775906801223755,
+        "myConstriction.index": 34.73271560668945,
+        "myConstriction.diameter": 0.774807870388031,
+        "tenseness": 0.7361269593238831,
+        "loudness": 0.9262712597846985,
+        "intensity": 1
+      },
+      {
+        "time": 0.2,
+        "name": "e",
+        "frequency": 140.82355356753655,
+        "tongue.index": 25.9163875579834,
+        "tongue.diameter": 2.715711832046509,
+        "myConstriction.index": 37.73653030395508,
+        "myConstriction.diameter": 2.874277114868164,
+        "tenseness": 0.7361269593238831,
+        "loudness": 0.9262712597846985,
+        "intensity": 1
+      },
+      {
+        "time": 0.35208333333333325,
+        "name": "s",
+        "frequency": 102.00469207763672,
+        "tongue.index": 23.960628509521484,
+        "tongue.diameter": 1.543920636177063,
+        "myConstriction.index": 31.57721519470215,
+        "myConstriction.diameter": 0.3962106704711914,
+        "tenseness": 0.8181954026222229,
+        "loudness": 0.9509599804878235,
+        "intensity": 1
+      },
+      {
+        "time": 0.4833333333333334,
+        "name": "ure",
+        "frequency": 82.13327455905124,
+        "tongue.index": 12.490761756896973,
+        "tongue.diameter": 1.8611775636672974,
+        "myConstriction.index": 28.101966857910156,
+        "myConstriction.diameter": 0.9815574884414673,
+        "tenseness": 0.6612620949745178,
+        "loudness": 0.9017650485038757,
+        "intensity": 0.7
+      },
+      {
+        "time": 0.6812499999999999,
+        "name": ".",
+        "frequency": 81.25236574691407,
+        "tongue.index": 12.490761756896973,
+        "tongue.diameter": 1.8611775636672974,
+        "myConstriction.index": 28.101966857910156,
+        "myConstriction.diameter": 0.9815574884414673,
+        "tenseness": 0.6612620949745178,
+        "loudness": 0.9017650485038757,
+        "intensity": 0
+      }
+    ]
   }
 ]

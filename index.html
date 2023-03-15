@@ -2140,7 +2140,7 @@
       );
       populateMicrophoneSelect();
 
-      let pitchDetectorDelay = 20;
+      let pitchDetectorDelay = 40;
       let isPitchDetectorEnabled = false;
       const toggleMicrophoneButton = document.querySelector(
         "#toggleMicrophoneButton"
@@ -2159,8 +2159,8 @@
           ? "🎤🎵"
           : "🎤🎵❌";
       };
-      let clarityThreshold = 0.9;
-      let pitchThreshold = 80;
+      let clarityThreshold = 0.8;
+      let pitchThreshold = 40;
       const analyserNode = audioContext.createAnalyser();
       const updatePitch = () => {
         analyserNode.getFloatTimeDomainData(input);

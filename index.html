@@ -1174,7 +1174,7 @@
         while (path.length) {
           value = value[path.shift()];
         }
-        if (newValue != undefined) {
+        if (!isNaN(newValue)) {
           value.value = newValue;
         }
       };

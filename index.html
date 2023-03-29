@@ -2142,6 +2142,17 @@
         loadJSON(json);
       };
       loadFromJSON();
+
+      const container = document.getElementById("container");
+      const loadInput = document.getElementById("loadInput");
+      document.addEventListener("dragover", (e) => {
+        e.preventDefault();
+      });
+      document.addEventListener("drop", (e) => {
+        loadInput.files = e.dataTransfer.files;
+        onLoadInput();
+        e.preventDefault();
+      });
     </script>
 
     <script type="module">
